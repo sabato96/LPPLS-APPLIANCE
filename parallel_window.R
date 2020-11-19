@@ -110,69 +110,57 @@ residuals_with_ts_obj <- function(x, ts) {
 #nbre_step_backward <- 720
 #nbre_generation <- 80
 nbre_step_backward <- 720
-nbre_generation <- 80
-
-fitter_tt <- function(i, from_base, ticker, 
-                      date_txt_from, to_base
-                      ){
-  
+nbre_generation <- 120
 
 
-  
-  from <- from_base+i
-  vec_control <- data.frame(maxit = c(nbre_generation)) 
-  
-  # if (as.POSIXlt(from)$wday != 0 & as.POSIXlt(from)$wday != 6) { 
-  .GlobalEnv$ticker <- ticker
-  rTicker <- base::subset(ticker, ticker$Date >= from & ticker$Date <= to_base)
-  
-  last_row <- tail(rTicker, 1)
-  first_row <- head(rTicker, 1)
-  dt <- last_row$t -first_row$t
-  
-  test <- cmaes::cma_es(c(0.01, 5, max(rTicker$t)+0.002), residuals_with_ts_obj, rTicker, lower=c(0.1, 1, max(rTicker$t)+0.002), upper=c(2, 50, max(rTicker$t)+0.2*dt), control=vec_control)
-  
-  linear_param <- getlinear_param(test$par[1], test$par[2], test$par[3])
-  
-  #fitted <- exp(linear_param[1] + linear_param[2] * (data$X ** test$par[1]) + linear_param[3] * (data$X ** test$par[1]) * cos(test$par[2] * log(data$X)) + linear_param[4] * (data$X ** test$par[1]) * sin(test$par[2] * log(data$X)))
-  
-  fitted <- FittedLPPLwithexpected(rTicker, LPPL(rTicker, test$par[1], test$par[2], test$par[3]), last_row$t, test$par[1], test$par[2], test$par[3])
-  
-  
-  df_result <- c(date_txt_from, format(to_base, "%Y-%m-%d"), last_row$t, first_row$t,
-                                  last_row$Close,
-                                  fitted,
-                                  -i,
-                                  nbre_generation,
-                                  test$par[3]-last_row$t,
-                                  as.integer((test$par[3]-last_row$t)/(1/365)),
-                                  test$par[1],
-                                  test$par[2],
-                                  test$par[3],
-                                  linear_param[1],
-                                  linear_param[2],
-                                  linear_param[3],
-                                  linear_param[4],
-                                  (test$par[2]/2)*log(abs((test$par[3]-first_row$t)/(dt))),
-                                  (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs(atan(linear_param[4]/linear_param[3]))),
-                                  (last_row$Close-fitted)/fitted )
-  #tryParams(test$par[1], test$par[2], test$par[3]) 
-  return(df_result)
-  
-}
-
-
-cl <- parallel::makeForkCluster(6)
+cl <- parallel::makeForkCluster(9)
 doParallel::registerDoParallel(cl)
-
-
 
 #Loop for weekly collapsing windows
 df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar% {
   
-  .GlobalEnv$ticker <- ticker
-  fitter_tt(i, from_base,ticker,date_txt_from,to_base)
-  
+                                    
+              from <- from_base+i
+              vec_control <- data.frame(maxit = c(nbre_generation)) 
+              
+              # if (as.POSIXlt(from)$wday != 0 & as.POSIXlt(from)$wday != 6) { 
+              .GlobalEnv$ticker <- ticker
+              rTicker <- base::subset(ticker, ticker$Date >= from & ticker$Date <= to_base)
+              
+              last_row <- tail(rTicker, 1)
+              first_row <- head(rTicker, 1)
+              dt <- last_row$t -first_row$t
+              
+              test <- cmaes::cma_es(c(0.01, 5, max(rTicker$t)+0.002), residuals_with_ts_obj, rTicker, 
+                                    lower=c(0.1, 1, max(rTicker$t)+0.002), upper=c(2, 50, max(rTicker$t)+0.2*dt), control=vec_control)
+              
+              linear_param <- getlinear_param(test$par[1], test$par[2], test$par[3])
+              
+              #fitted <- exp(linear_param[1] + linear_param[2] * (data$X ** test$par[1]) + linear_param[3] * (data$X ** test$par[1]) * cos(test$par[2] * log(data$X)) + linear_param[4] * (data$X ** test$par[1]) * sin(test$par[2] * log(data$X)))
+              
+              fitted <- FittedLPPLwithexpected(rTicker, LPPL(rTicker, test$par[1], test$par[2], test$par[3]), last_row$t, test$par[1], test$par[2], test$par[3])
+              
+              
+              df_result <- c(date_txt_from, format(to_base, "%Y-%m-%d"), last_row$t, first_row$t,
+                             last_row$Close,
+                             fitted,
+                             -i,
+                             nbre_generation,
+                             test$par[3]-last_row$t,
+                             as.integer((test$par[3]-last_row$t)/(1/365)),
+                             test$par[1],
+                             test$par[2],
+                             test$par[3],
+                             linear_param[1],
+                             linear_param[2],
+                             linear_param[3],
+                             linear_param[4],
+                             (test$par[2]/2)*log(abs((test$par[3]-first_row$t)/(dt))),
+                             (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs(atan(linear_param[4]/linear_param[3]))),
+                             (last_row$Close-fitted)/fitted )
+              #tryParams(test$par[1], test$par[2], test$par[3]) 
+              return(df_result)
+                             
 }
 #}
 
