@@ -12,43 +12,9 @@ av_api_key("YMBQQT7AJQVV2RJN")
 #setwd("C:\\Users\\gargi\\Desktop\\Tesi SSF\\Code")
 setwd("~/Desktop/Tesi SSF/Code")
 
-filename <- "SP500.csv"
-filepath <- paste("./data/", filename, sep="")
-filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
+# Funzioni
+###### 
 
-
-
-ticker <- read.csv(filepath)
-ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
-plot(ticker$Date,ticker$Adj.Close ,type="l")
-
-ticker <- ticker[,c(1,6)]
-
-
-ticker$t <- decimal_date(ticker$Date)
-names(ticker) <- c("Date", "Close", "t")
-
-
-
-date_txt_to_base = "2007-9-28"
-to_base <- as.Date(date_txt_to_base)
-
-date_txt_from <- as.character(to_base-860)
-from_base <- as.Date(date_txt_from)
-
-
-
-
-
- 
-
-#RIMUOVIAMO RIGHE CON NA
-
-ticker$Close <- na_if(ticker$Close,"null")
-ticker <- na.omit(ticker)
-ticker$Close <- as.numeric(ticker$Close)
-
-#Slaving Linear Variables
 LPPL <- function(data, m=1, omega=1, tc=0) {
   data$X <- tc - data$t
   data$Xm <- data$X ** m #B
@@ -69,7 +35,6 @@ FittedLPPL <- function(data, lm.result, m=1, omega=1, tc=0) {
   return(result)
 }
 
-
 #Rewritten for plotting
 FittedLPPLwithexpected <- function(data, lm.result, x_vector, m=1, omega=1, tc=0) {
   tmp_vector <- tc - x_vector
@@ -88,7 +53,6 @@ getlinear_param <- function(m, omega, tc) {
   getcoeff_regLPPL <- c(lm.result$coefficients[1],lm.result$coefficients[2], lm.result$coefficients[3], lm.result$coefficients[4])
 }
 
-
 tryParams <- function (m, omega, tc) {  
   lm.result <- LPPL(rTicker, m, omega, tc)
   plot(rTicker$t, rTicker$Close, typ='l') #Plot graph
@@ -96,25 +60,53 @@ tryParams <- function (m, omega, tc) {
   lines(generate_vector, FittedLPPLwithexpected(rTicker, lm.result, generate_vector, m, omega, tc), col="red")
 }
 
-
 residuals_with_ts <- function(ts, m, omega, tc) {
   lm.result <- LPPL(ts, m, omega, tc)
   return(sum((FittedLPPL(ts, lm.result, m, omega, tc) - ts$Close) ** 2))
 }
 
-
 residuals_with_ts_obj <- function(x, ts) {
   return(residuals_with_ts(ts, x[1], x[2], x[3]))
 }
+######
 
-#nbre_step_backward <- 720
-#nbre_generation <- 80
+# Data wrangling
+filename <- "SP500.csv"
+filepath <- paste("./data/", filename, sep="")
+filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
+ticker <- read.csv(filepath)
+ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
+plot(ticker$Date,ticker$Adj.Close ,type="l")
+ticker <- ticker[,c(1,6)]
+ticker$t <- decimal_date(ticker$Date)
+names(ticker) <- c("Date", "Close", "t")
+ticker$Close <- na_if(ticker$Close,"null")
+ticker <- na.omit(ticker)
+ticker$Close <- as.numeric(ticker$Close)
+
 nbre_step_backward <- 720
 nbre_generation <- 120
 
-
-cl <- parallel::makeForkCluster(9)
+cl <- parallel::makeForkCluster(10)
 doParallel::registerDoParallel(cl)
+
+#date_txt_to_base = "2020-9-17"
+
+vec_date = ticker$Date[7200:7260]
+ret_fil <- matrix(0, ncol=4,nrow=nrow(ticker))
+
+for (j in 1:length(vec_date)) {
+
+
+to_base <- as.Date(vec_date[j])
+date_txt_to_base <- as.character(to_base)
+date_txt_from <- as.character(to_base-860)
+from_base <- as.Date(date_txt_from)
+
+
+
+
+
 
 #Loop for weekly collapsing windows
 df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar% {
@@ -164,56 +156,66 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
 }
 #}
 
-parallel::stopCluster(cl)
+
 
 df_result <- as.data.frame(df_result)
 i <- 3:20
 df_result[3:20] <- lapply(df_result[3:20],as.numeric)
 
-ticker[4:7] <- vector("numeric",length=nrow(ticker))
+#ticker[4:7] <- vector("numeric",length=nrow(ticker))
 
 colnames(df_result) <- c("date_from", "date_to", "t2","t1", "price","fitted price", "step_backward", 
                          "nbre_generation", "t_until_critical_point", "days_before_critical_time", "m",
                          "omega", "tc", "A", "B", "C1", "C2", "oscill","damp","rel_err")
 
-colnames(ticker)[4:7] <- c("early_warn_lt","bubble_end_lt","early_warn_st","bubble_end_st")
+
+
+
 
 
 #Condizione early warning (LONG TIME) "Ear_lt"
-ticker[which(ticker$Date == to_base),4] <- nrow(as_tibble(df_result)[1:125,] %>% 
-                                                  
-                                                  filter(m >= 0.01 & m <= 1.2 & omega >=2 & omega <= 25
-                                                         & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=0.8 
-                                                         & rel_err >=0 & rel_err <=0.05))/125 
+#ticker[which(ticker$Date == to_base),4]  
+
+
+ret_fil[which(ticker$Date == vec_date[j]),1] <- nrow(as_tibble(df_result)[1:125,] %>% 
+          
+                                              filter(m >= 0.01 & m <= 1.2 & omega >=2 & omega <= 25
+                                                     & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=0.8 
+                                                     & rel_err >=0 & rel_err <=0.05))/125 +1
+                                         
 
 #Condizione end flag (LONG TIME) "End_lt"
 
-ticker[which(ticker$Date == to_base),5] <- nrow(as_tibble(df_result)[1:125,] %>% 
+ret_fil[which(ticker$Date == vec_date[j]),2] <- nrow(as_tibble(df_result)[1:125,] %>% 
                                                   
                                                   filter(m >= 0.01 & m <= 0.99 & omega >=2 & omega <= 25
                                                          & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=1
-                                                         & rel_err >=0 & rel_err <=0.2))/125 
+                                                         & rel_err >=0 & rel_err <=0.2))/125 +1
 
 # Condizione early warning (SHORT TIME) "Ear_st"
-ticker[which(ticker$Date == to_base),6] <- nrow(as_tibble(df_result)[126:145,] %>% 
+ret_fil[which(ticker$Date == vec_date[j]),3] <- nrow(as_tibble(df_result)[126:145,] %>% 
                                                   
                                                   filter(m >= 0.01 & m <= 1.2 & omega >=2 & omega <= 25
                                                          & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=0.8 
-                                                         & rel_err >=0 & rel_err <=0.05))/20 
+                                                         & rel_err >=0 & rel_err <=0.05))/20 +1
 
 #Condizione end flag (SHORT TIME) "End_st"
 
-ticker[which(ticker$Date == to_base),7] <- nrow(as_tibble(df_result)[126:145,] %>% 
+ret_fil[which(ticker$Date == vec_date[j]),4] <- nrow(as_tibble(df_result)[126:145,] %>% 
                                                   
                                                   filter(m >= 0.01 & m <= 0.99 & omega >=2 & omega <= 25
                                                          & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=1
-                                                         & rel_err >=0 & rel_err <=0.2))/20 
+                                                         & rel_err >=0 & rel_err <=0.2))/20 +1
 
 
+}
 
 
+parallel::stopCluster(cl)
 
+ticker <- cbind(ticker,as.data.frame(ret_fil))
 
+colnames(ticker)[4:7] <- c("early_warn_lt","bubble_end_lt","early_warn_st","bubble_end_st")
 
 nowdatetime <- paste(format(Sys.Date(), "%Y%m%d"), 
                      format(Sys.time(), "%H%M%S"), 
@@ -224,7 +226,6 @@ write.csv(df_result,
                 "_from_", date_txt_from, "_to_", date_txt_to_base, ".csv", sep=''))
 
 
-rm(list())
 
 
 
