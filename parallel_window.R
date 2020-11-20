@@ -14,8 +14,8 @@ setwd("~/Desktop/Tesi SSF/Code")
 
 # Funzioni
 ###### 
-
-LPPL <- function(data, m=1, omega=1, tc=0) {
+#Prima era m=1 e omega=1
+LPPL <- function(data, m=0.4, omega=4, tc=0) {
   data$X <- tc - data$t
   data$Xm <- data$X ** m #B
   data$Xm.cos <- data$X ** m * cos(omega * log(data$X)) #C1
@@ -90,15 +90,16 @@ nbre_generation <- 120
 cl <- parallel::makeForkCluster(10)
 doParallel::registerDoParallel(cl)
 
-#date_txt_to_base = "2020-9-17"
+#date_txt_to_base = "2007-6-25"
 
-vec_date = ticker$Date[7140:7260]
+vec_date = ticker$Date[7100:7264]
 ret_fil <- matrix(0, ncol=4,nrow=nrow(ticker))
 
 for (j in 1:length(vec_date)) {
 
 
 to_base <- as.Date(vec_date[j])
+#to_base <- as.Date(date_txt_to_base)
 date_txt_to_base <- as.character(to_base)
 date_txt_from <- as.character(to_base-860)
 from_base <- as.Date(date_txt_from)
@@ -124,7 +125,7 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
               dt <- last_row$t -first_row$t
               
               test <- cmaes::cma_es(c(0.01, 5, max(rTicker$t)+0.002), residuals_with_ts_obj, rTicker, 
-                                    lower=c(0.1, 1, max(rTicker$t)+0.002), upper=c(2, 50, max(rTicker$t)+0.2*dt), control=vec_control)
+                                    lower=c(0.01, 1, max(rTicker$t)+0.002), upper=c(1.98, 50, max(rTicker$t)+0.2*dt), control=vec_control)
               
               linear_param <- getlinear_param(test$par[1], test$par[2], test$par[3])
               
@@ -147,9 +148,11 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
                              linear_param[2],
                              linear_param[3],
                              linear_param[4],
-                             (test$par[2]/2)*log(abs((test$par[3]-first_row$t)/(dt))),
-                             (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
-                             (last_row$Close-fitted)/fitted )
+                             (test$par[2]/(2*pi))*log(abs((test$par[3])/(dt))),
+                             (test$par[1]*abs(linear_param[2]))/(test$par[2]
+                                                                 #*abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
+                                                                 *abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))),
+                                                                 (last_row$Close-fitted)/fitted )
               #tryParams(test$par[1], test$par[2], test$par[3]) 
               return(df_result)
                              
@@ -180,7 +183,8 @@ colnames(df_result) <- c("date_from", "date_to", "t2","t1", "price","fitted pric
 ret_fil[which(ticker$Date == vec_date[j]),1] <- nrow(as_tibble(df_result)[1:125,] %>% 
           
                                               filter(m >= 0.01 & m <= 1.2 & omega >=2 & omega <= 25
-                                                     & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=0.8 
+                                                     #& tc <= t2+0.1*(t2-t1) 
+                                                     & oscill >= 2.5 & damp >=0.8 
                                                      & rel_err >=0 & rel_err <=0.05))/125 +1
                                          
 
@@ -189,14 +193,16 @@ ret_fil[which(ticker$Date == vec_date[j]),1] <- nrow(as_tibble(df_result)[1:125,
 ret_fil[which(ticker$Date == vec_date[j]),2] <- nrow(as_tibble(df_result)[1:125,] %>% 
                                                   
                                                   filter(m >= 0.01 & m <= 0.99 & omega >=2 & omega <= 25
-                                                         & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=1
+                                                         #& tc <= t2+0.1*(t2-t1) 
+                                                         & oscill >= 2.5 & damp >=1
                                                          & rel_err >=0 & rel_err <=0.2))/125 +1
 
 # Condizione early warning (SHORT TIME) "Ear_st"
 ret_fil[which(ticker$Date == vec_date[j]),3] <- nrow(as_tibble(df_result)[126:145,] %>% 
                                                   
                                                   filter(m >= 0.01 & m <= 1.2 & omega >=2 & omega <= 25
-                                                         & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=0.8 
+                                                         #& tc <= t2+0.1*(t2-t1) 
+                                                         & oscill >= 2.5 & damp >=0.8 
                                                          & rel_err >=0 & rel_err <=0.05))/20 +1
 
 #Condizione end flag (SHORT TIME) "End_st"

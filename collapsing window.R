@@ -146,12 +146,12 @@ for (i in seq(0,nbre_step_backward,5)) {
                                     linear_param[2],
                                     linear_param[3],
                                     linear_param[4],
-                                    (test$par[2]/2)*log(abs((test$par[3]-first_row$t)/(dt))),
+                                    (test$par[2]/(2*pi))*log(abs((test$par[3])/(dt))),
                                     (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                                     (last_row$Close-fitted)/fitted 
                                     ))
     
-    #tryParams(test$par[1], test$par[2], test$par[3]) 
+    tryParams(test$par[1], test$par[2], test$par[3]) 
     
   }
 #}

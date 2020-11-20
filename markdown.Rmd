@@ -43,9 +43,11 @@ ove $\phi=\{A,B,C_1,C_2,m,\omega,t_c \}$ è il vettore di parametri che ci inter
 
 $$
 f = (t_c-t)^m
-\\
+$$
+$$
 g = (t_c-t)^m \cos(\omega \ ln(t_c-t))
-\\
+$$
+$$
 h = (t_c-t)^m \sin(\omega \ ln(t_c-t))
 $$
 
@@ -100,9 +102,15 @@ $$
 
 con 
 $$
-y_i=ln( p_i) \\
-f_i=(t_c-t_i)^m \\
-g_i=(t_c-t_i)^m \cos(\omega \ ln(t_c-t_i)) \\
+y_i=ln( p_i) 
+$$
+$$
+f_i=(t_c-t_i)^m 
+$$
+$$
+g_i=(t_c-t_i)^m \cos(\omega \ ln(t_c-t_i)) 
+$$
+$$
 h_i=(t_c-t_i)^m \sin(\omega \ ln(t_c-t_i))
 $$
 
@@ -393,6 +401,32 @@ Una volta filtrato ci basterà calcolare la frazione di finestre valide su quell
 
 L'early bubble warning è un indicatore che serve a indentificare una bolla nella fase iniziale della sua formazione. Viceversa il "bubble end flag" ci indica quando una bolla è vicina alla propria fine poichè avverrà un cambio di regime. 
 Se il valore assoluto di questo indicatore è elevato, significa che il regime in corso non è sostenibile.
+
+!! Nota 
+Per ricavare C attraverso C1 e C2 faccio così:
+
+$$
+C_1=C \cos(\phi) \ \ \ C_2=C \sin(\phi) \ \ \ ricordando \ \ che \ \ \sin(\phi)^2+\cos(\phi)^2=1 
+$$
+
+Possiamo scrivere:
+$$
+C_1^2+C_2^2=C^2(\sin(\phi)^2+\cos(\phi)^2) \ \ quindi \ \ C=\sqrt{C_1^2+C_2^2}
+$$
+
+Potevo anche procedere ricavando $\phi$ :
+
+$$
+\frac{C_1}{\cos(\phi)}=\frac{C_2}{sin(\phi)} \ \ \ \ \ \ \ \ \ \ \ \tan(\phi)=\frac{\sin(\phi)}{\cos(\phi)}=\frac{C_2}{C_1} \ \ \ \ \ \ \ \ \ \ \ \
+\phi=\arctan\bigg(\frac{C_2}{C_1}\bigg)
+$$
+
+E sostituendo $\phi$:
+
+$$
+C=\frac{C_1}{\cos(\arctan(C_2/C_1))}
+$$
+
 
 
 
