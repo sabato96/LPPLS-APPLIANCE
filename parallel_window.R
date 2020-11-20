@@ -92,7 +92,7 @@ doParallel::registerDoParallel(cl)
 
 #date_txt_to_base = "2020-9-17"
 
-vec_date = ticker$Date[7200:7260]
+vec_date = ticker$Date[7140:7260]
 ret_fil <- matrix(0, ncol=4,nrow=nrow(ticker))
 
 for (j in 1:length(vec_date)) {
@@ -148,7 +148,7 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
                              linear_param[3],
                              linear_param[4],
                              (test$par[2]/2)*log(abs((test$par[3]-first_row$t)/(dt))),
-                             (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs(atan(linear_param[4]/linear_param[3]))),
+                             (test$par[1]*abs(linear_param[2]))/(test$par[2]*abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                              (last_row$Close-fitted)/fitted )
               #tryParams(test$par[1], test$par[2], test$par[3]) 
               return(df_result)
