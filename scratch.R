@@ -6,6 +6,9 @@ library(lubridate)
 library(dplyr)
 library(parallel)
 library(doParallel)
+library(progress)
+library(ggplot2)
+
 
 av_api_key("YMBQQT7AJQVV2RJN")
 
@@ -47,24 +50,14 @@ lppl_est <- function(data, tc, m, w, a, b, c1, c2){
 
 matrix_eq <- function(data, tc, m, w){
 
-f_i <- (tc-data$t)^m
-g_i <- f_i*cos(w*log(tc-data$t))
-h_i <- f_i*sin(w*log(tc-data$t))
-  
-col1 <- c(nrow(data),sum(f_i),sum(g_i),sum(h_i))
-col2 <- c(sum(f_i),sum(f_i^2),sum(f_i*g_i),sum(f_i*h_i))
-col3 <- c(sum(g_i),sum(f_i*g_i),sum(g_i^2),sum(g_i*h_i))
-col4 <- c(sum(h_i),sum(f_i*h_i),sum(h_i*g_i),sum(h_i^2))
-col5 <- c(sum(log(data$Close)),
-          sum(f_i*log(data$Close)),
-          sum(g_i*log(data$Close)),
-          sum(h_i*log(data$Close)))
+data$ti <- tc - data$t
+data$Xm <- data$ti ** m #B
+data$Xm.cos <- data$ti ** m * cos(w * log(data$ti)) #C1
+data$Xm.sin <- data$ti ** m * sin(w * log(data$ti)) #C2
+data$logP <- log(data$Close)
+reg <- coef(lm(logP ~ Xm + Xm.cos + Xm.sin, data=data))
 
-mat1 <- cbind(col1,col2,col3,col4)
-#A,B.C1,C2
-lin_par <- solve(mat1,col5)
-
-return(lin_par)
+return(reg)
 }
 
 funz_obj <- function(x,data){
@@ -83,7 +76,12 @@ funz_obj <- function(x,data){
   delta <- log(data$Close)-lppl_est(data,tc, m, w, lin_par[1], lin_par[2],
                     lin_par[3], lin_par[4])
   
+  
+  
   RSS <- sum(delta^2)
+  # Root MSE
+  #RSS <- sqrt((1/length(data$Close))*sum(delta^2))
+  
   return(RSS)
   
 }
@@ -92,8 +90,15 @@ nbre_step_backward <- 720
 nbre_generation <- 120
 
 #Seleziona run span
-vec_date <- ticker$Date[7100:7260]
+vec_date <- ticker$Date[6700:6718]
 ret_fil <- matrix(0, ncol=4,nrow=nrow(ticker))
+
+pb <- progress_bar$new(  format = "  processing [:bar] :percent in :elapsed",
+                         total = length(vec_date), clear = FALSE, width= 60)
+
+
+cl <- parallel::makeForkCluster(9)
+doParallel::registerDoParallel(cl)
 
 
 for (j in 1:length(vec_date)) {
@@ -103,15 +108,13 @@ to <- as.Date(vec_date[j]) #parallel
 #to <- as.Date("2007-10-04")
 to_base <- to
 date_txt_to_base <- as.character(to_base)
-date_txt_from <- as.character(to_base-860)
+date_txt_from <- as.character(to_base-800)
 from_base <- as.Date(date_txt_from)
 ##############
 
-cat("\n","Simulation:",j,"/",length(vec_date),"\n")
+#cat("\n","Simulation:",j,"/",length(vec_date),"\n")
 
-
-cl <- parallel::makeForkCluster(9)
-doParallel::registerDoParallel(cl)
+pb$tick()
 
 #Loop for weekly collapsing windows
 df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar% {
@@ -121,7 +124,7 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
   vec_control <- data.frame(maxit = c(nbre_generation)) 
   
   # if (as.POSIXlt(from)$wday != 0 & as.POSIXlt(from)$wday != 6) { 
-  .GlobalEnv$ticker <- ticker
+  
   rTicker <- base::subset(ticker, ticker$Date >= from & ticker$Date <= to_base)
   
   last_row <- tail(rTicker, 1)
@@ -129,13 +132,16 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
   dt <- last_row$t -first_row$t
   
   
-  start_search <- c(runif(1,max(rTicker$t)+0.002,max(rTicker$t)+0.3*dt),
-                    runif(1,0.01,2),
-                    runif(1,1,50))
+  start_search <- c(runif(1,max(rTicker$t)+0.002,max(rTicker$t)+0.5*dt),
+                    runif(1,0.0001,2),
+                    runif(1,9,21))
   
   test <- cmaes::cma_es(start_search, funz_obj, rTicker, 
-                        lower=c(max(rTicker$t)+0.002, 0.01, 1), upper=c(max(rTicker$t)+0.3*dt, 2, 50), control=vec_control)
+                        lower=c(max(rTicker$t)+0.002, 0.0001, 9), upper=c(max(rTicker$t)+0.5*dt, 2, 21), control=vec_control)
   
+  #test <- optim(par=start_search,fn=funz_obj,data=rTicker,method="L-BFGS-B",
+                #lower=c(max(rTicker$t)+0.002, 0.1, 1),upper=c(max(rTicker$t)+0.4*dt, 2, 30))
+
   linear_param <- matrix_eq(rTicker,test$par[1], test$par[2], test$par[3])
   
   #fitted <- exp(linear_param[1] + linear_param[2] * (data$X ** test$par[1]) + linear_param[3] * (data$X ** test$par[1]) * cos(test$par[2] * log(data$X)) + linear_param[4] * (data$X ** test$par[1]) * sin(test$par[2] * log(data$X)))
@@ -146,9 +152,8 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
   
   
   fitted <- lppl_est(rTicker,test$par[1], test$par[2], test$par[3],
-                     linear_param[1],linear_param[2],linear_param[3],linear_param[4])
+                     linear_param[1],linear_param[2],linear_param[3],linear_param[4])[length(fitted)]
   
-  fitted <- fitted[length(fitted)]
   df_result <- c(date_txt_from, format(to_base, "%Y-%m-%d"), last_row$t, first_row$t,
                  last_row$Close,
                  exp(fitted),
@@ -163,12 +168,13 @@ df_result <- foreach (i = seq(0,nbre_step_backward,5), .combine = rbind) %dopar%
                  linear_param[2],
                  linear_param[3],
                  linear_param[4],
-                 (test$par[3]/(2*pi))*log(abs((test$par[1]-first_row$t)/(test$par[1]-last_row$t))),
+                 (test$par[3]/(2*pi))*log(abs((test$par[1])/(test$par[1]-last_row$t))),
                  (test$par[2]*abs(linear_param[2]))/(test$par[3]
                                                      *abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                  #*abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))
                  
                  (last_row$Close-exp(fitted))/exp(fitted) )
+  
   #tryParams(test$par[1], test$par[2], test$par[3]) 
   return(df_result)
   
@@ -229,22 +235,70 @@ ret_fil[which(ticker$Date == vec_date[j]),4] <- nrow(as_tibble(df_result)[126:14
 
                                                        filter(m >= 0.01 & m <= 0.99 & omega >=2 & omega <= 25
                                                               & tc <= t2+0.1*(t2-t1) & oscill >= 2.5 & damp >=1
-                                                              & rel_err >=0 & rel_err <=0.2))/20 +1
 
-
+                                                              
+                                                              
+                                                                                                                            & rel_err >=0 & rel_err <=0.2))/20 +1
+for(jj in seq(1,140,15)){#nrow(df_result)-140){
+  n.row <- jj
+  from_plot <- df_result$t1[n.row] 
+  to_plot <- df_result$t2[n.row]
+  
+  plot_ticker <- base::subset(ticker, ticker$Date >= as.Date(date_decimal(from_plot)) & ticker$Date <= as.Date(date_decimal(to_plot)))
+  
+  plot_ticker$fitted <- exp(lppl_est(plot_ticker, df_result[n.row,13], df_result[n.row,11],
+                                     df_result[n.row,12], df_result[n.row,14], df_result[n.row,15],
+                                     df_result[n.row,16],df_result[n.row,17]))
+  
+  #<- function(data, tc, m, w, a, b, c1, c2)
+  
+  print(ggplot(plot_ticker, aes(Date)) + 
+          geom_line(aes(y = Close, colour = "Close")) + 
+          geom_line(aes(y = fitted, colour = "Fitted")) )
+  
+  Sys.sleep(1)
+  
 }
 
+}
+ticker <- cbind(ticker,as.data.frame(ret_fil))
+
+colnames(ticker)[4:7] <- c("early_warn_lt","bubble_end_lt","early_warn_st","bubble_end_st")
 
 parallel::stopCluster(cl)
 
 
+print(ggplot(ticker[6689:6800,], aes(Date)) + 
+        geom_line(aes(y = Close, colour = "Close")) + 
+        geom_line(aes(y = (bubble_end_lt)*3200, colour = "bubble_end_lt")) +
+        scale_y_continuous(sec.axis = sec_axis(~./3200, name = "DLPPL Confidence")))
 
 
 
 
 
+# Plotting di una singola finestra
 
+for(i in seq(1,140,25)){#nrow(df_result)-140){
+n.row <- i
+from_plot <- df_result$t1[n.row] 
+to_plot <- df_result$t2[n.row]
 
+plot_ticker <- base::subset(ticker, ticker$Date >= as.Date(date_decimal(from_plot)) & ticker$Date <= as.Date(date_decimal(to_plot)))
+
+plot_ticker$fitted <- exp(lppl_est(plot_ticker, df_result[n.row,13], df_result[n.row,11],
+                               df_result[n.row,12], df_result[n.row,14], df_result[n.row,15],
+                               df_result[n.row,16],df_result[n.row,17]))
+
+#<- function(data, tc, m, w, a, b, c1, c2)
+
+print(ggplot(plot_ticker, aes(Date)) + 
+  geom_line(aes(y = Close, colour = "Close")) + 
+  geom_line(aes(y = fitted, colour = "Fitted")) )
+
+Sys.sleep(2)
+
+}
 
 
 
