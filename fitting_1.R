@@ -83,13 +83,15 @@ last_row <- tail(ticker, 1)
 first_row <- head(ticker, 1)
 dt <- last_row$t -first_row$t
 
-start_search <- c(runif(1,max(ticker$t)+0.002,max(ticker$t)+0.5*dt),
+start_search <- c(runif(1,max(ticker$t)-0.2*dt,max(ticker$t)+0.2*dt),
                   runif(1,0.0001,2),
                   runif(1,9,21))
 
-upper <- c(max(ticker$t)+0.5*dt,2,50)
-lower <- c(max(ticker$t)+0.002,0.01,1)
+upper <- c(max(ticker$t)+0.2*dt,2,50)
+lower <- c(max(ticker$t)-0.2*dt,0.01,1)
 
+#Stima L-BFGS-B
+start_time <- Sys.time()
 test <- optim(start_search,funz_obj,lower=lower,upper=upper,method="L-BFGS-B",data=ticker)
 
 linear_param <- matrix_eq(ticker,test$par[1], test$par[2], test$par[3])
@@ -99,10 +101,32 @@ fitted <- lppl_est(ticker,test$par[1], test$par[2], test$par[3],
 
 plot(log(ticker$Close),type="l",col="red")
 lines(fitted, col="blue")
+end_time <- Sys.time()
+end_time-start_time
 
 
+#Stima CMA_ES
 
+start_time <- Sys.time()
 
+nbre_step_backward <- 740
+nbre_generation <- 50
+
+vec_control <- data.frame(maxit = c(nbre_generation))
+
+test <- cmaes::cma_es(start_search, funz_obj, ticker, 
+                      lower=c(max(ticker$t)-0.2*dt, 0.0001, 1), upper=c(max(ticker$t)+0.2*dt, 2, 50), control=vec_control)
+
+linear_param <- matrix_eq(ticker,test$par[1], test$par[2], test$par[3])
+
+fitted <- lppl_est(ticker,test$par[1], test$par[2], test$par[3],
+                   linear_param[1],linear_param[2],linear_param[3],linear_param[4])
+
+plot(log(ticker$Close),type="l",col="red")
+lines(fitted, col="blue")
+
+end_time <- Sys.time()
+end_time-start_time
 
 
 ###########################
