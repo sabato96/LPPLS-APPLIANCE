@@ -9,6 +9,7 @@ library(doParallel)
 library(progress)
 library(ggplot2)
 library(nloptr)
+library(optimx)
 
 #get data
 filename <- "SP500.csv"
@@ -16,14 +17,15 @@ filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
 ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
-plot(ticker$Date,ticker$Adj.Close ,type="l")
+#plot(ticker$Date,ticker$Adj.Close ,type="l")
 ticker <- ticker[,c(1,6)]
 ticker$t <- decimal_date(ticker$Date)
 names(ticker) <- c("Date", "Close", "t")
 ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
-ticker <- ticker[5485:6730,]
+
+ticker <- ticker[5185:6730,]
 
 
 
@@ -35,7 +37,6 @@ lppl_est <- function(data, tc, m, w, a, b, c1, c2){
   
   return(est)
 }
-
 matrix_eq <- function(data, tc, m, w){
   
   ti <- abs(tc - data$t)
@@ -57,7 +58,6 @@ matrix_eq <- function(data, tc, m, w){
   
   return(coef)
 }
-
 funz_obj <- function(x,data){
   
   tc = x[1]
@@ -81,7 +81,6 @@ funz_obj <- function(x,data){
   return(RSS)
   
 }
-
 fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   
   ticker <- data
@@ -91,7 +90,7 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   dt <- last_row$t -first_row$t
   
   start_search <- c(runif(1,max(ticker$t)-0.2*dt,max(ticker$t)+0.2*dt),
-                    runif(1,0.0001,2),
+                    runif(1,0.01,2),
                     runif(1,9,21))
   
   upper <- c(max(ticker$t)+0.2*dt,2,50)
@@ -131,6 +130,7 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   results <- data.frame(first_row$Date,
                last_row$Date, 
                last_row$Close,
+               as.integer(dt/(1/365)),
                exp(max(fitted)), 
                test$par[1]-last_row$t, 
                as.integer((test$par[1]-last_row$t)/(1/365)),
@@ -146,10 +146,10 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
                                                    *abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                #*abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))
                
-               (last_row$Close-exp(fitted)[length(fitted)])/exp(fitted)[length(fitted)] 
+               (log(last_row$Close)-fitted[length(fitted)])/fitted[length(fitted)] 
               )
   
-  names(results) <- c("start_date","end_date","last_price","LPPL_max","tc-end.t",
+  names(results) <- c("start_date","end_date","last_price","dt","LPPL_max","tc-end.t",
                       "day_to_tc","m","w","tc","A","B","C1","C2","oscill","damp","rel_err")
   
   
@@ -160,29 +160,57 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
     
 }
 
-RES=fitter(ticker,plot=TRUE)
+
+RES=fitter(ticker[seq(nrow(ticker)-840,nrow(ticker)),],plot=TRUE)
 
 
 
+# Script che lo lancia tu tutte le finestre temporali
+
+sub_ticker <- ticker[seq(nrow(ticker)-1460,nrow(ticker)),]
+
+pb <- progress_bar$new(  format = "  processing [:bar] :percent in :elapsed",
+                         total = nrow(sub_ticker), clear = FALSE, width= 60)
 
 
 
+cl <- parallel::makeForkCluster(8)
+doParallel::registerDoParallel(cl)
 
 
+df_result <- foreach (i = seq(1,1419,3), .combine = rbind) %dopar% {
+  
+  
+  #from <- from_base+i
 
+  # if (as.POSIXlt(from)$wday != 0 & as.POSIXlt(from)$wday != 6) { 
+  
+  #rTicker <- base::subset(sub_ticker, sub_ticker$Date >= from & sub_ticker$Date <= to_base)
+  
+  
+  r.ticker <- sub_ticker[i:nrow(sub_ticker),]
+  
 
+  result <- NULL
+  attempt <- 3
+  while(is.null(result) && attempt <= 4){
+    
+    attempt <- attempt +1
+    try(
+      result <- fitter(r.ticker),
+      silent=TRUE
+    )
+    
+  }  
+  
+  
+  pb$tick()
+  
+  return(result)
+  
+}
 
-
-
-
-
-
-
-
-
-
-
-
+parallel::stopCluster(cl)
 
 
 
