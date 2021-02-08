@@ -25,7 +25,7 @@ ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
 
-ticker <- ticker[5185:6730,]
+ticker <- ticker[1:6730,]
 
 
 
@@ -161,13 +161,13 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
 }
 
 
-RES=fitter(ticker[seq(nrow(ticker)-840,nrow(ticker)),],plot=TRUE)
+#RES=fitter(ticker[seq(nrow(ticker)-840,nrow(ticker)),],plot=TRUE)
 
 
 
 # Script che lo lancia tu tutte le finestre temporali
 
-sub_ticker <- ticker[seq(nrow(ticker)-1460,nrow(ticker)),]
+sub_ticker <- ticker[seq(nrow(ticker)-1350,nrow(ticker)),]
 
 pb <- progress_bar$new(  format = "  processing [:bar] :percent in :elapsed",
                          total = nrow(sub_ticker), clear = FALSE, width= 60)
@@ -178,7 +178,7 @@ cl <- parallel::makeForkCluster(8)
 doParallel::registerDoParallel(cl)
 
 
-df_result <- foreach (i = seq(1,1419,3), .combine = rbind) %dopar% {
+df_result <- foreach (i = seq(1,1437,1), .combine = rbind) %dopar% {
   
   
   #from <- from_base+i
@@ -211,6 +211,132 @@ df_result <- foreach (i = seq(1,1419,3), .combine = rbind) %dopar% {
 }
 
 parallel::stopCluster(cl)
+
+
+#Prendo solo lunghezza intervallo che mi interessa dt tra 1460 e 40
+df_result <- as_tibble(df_result) %>%
+  
+                filter(dt >= 40 & dt<=1460)
+
+# CALCOLA INDICATORE
+
+# ( SS_EW ) SUPER SHORT SCALE (SS) _ EARLY WARNING __ 183 a 40
+SS_EW <- nrow(as_tibble(df_result) %>%
+       
+              filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1)
+                       & oscill >= 2.5 & damp >=0.8
+                       & rel_err >=0 & rel_err <=0.05
+                       & dt >= 40 & dt<=183))
+
+SS_EW <- SS_EW/nrow(as_tibble(df_result) %>%
+                      
+                      filter(dt >= 40 & dt<=183))
+
+
+# ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
+SS_EF <- nrow(as_tibble(df_result) %>%
+                
+               filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1) 
+                      & oscill >= 2.5 & damp >=1
+                      & rel_err >=0 & rel_err <=0.2
+                      & dt >= 40 & dt<=183))
+
+SS_EF <- SS_EF/nrow(as_tibble(df_result) %>%
+                      
+                      filter(dt >= 40 & dt<=183))
+
+# ( S_EW ) SHORT SCALE -- EARLY WARNING  360 A 40
+
+S_EW <- nrow(as_tibble(df_result) %>%
+                
+                filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                       #& tc <= t2+0.1*(t2-t1)
+                       & oscill >= 2.5 & damp >=0.8
+                       & rel_err >=0 & rel_err <=0.05
+                       & dt >= 40 & dt<=360))
+
+S_EW <- S_EW/nrow(as_tibble(df_result) %>%
+                      
+                      filter(dt >= 40 & dt<=360))
+
+# ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
+S_EF <- nrow(as_tibble(df_result) %>%
+                
+                filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                       #& tc <= t2+0.1*(t2-t1) 
+                       & oscill >= 2.5 & damp >=1
+                       & rel_err >=0 & rel_err <=0.2
+                       & dt >= 40 & dt<=360))
+
+S_EF <- S_EF/nrow(as_tibble(df_result) %>%
+                      
+                      filter(dt >= 40 & dt<=360))
+
+
+# ( M_EW ) MEDIUM SCALE -- EARLY WARNING  365 A 730
+
+M_EW <- nrow(as_tibble(df_result) %>%
+               
+               filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1)
+                      & oscill >= 2.5 & damp >=0.8
+                      & rel_err >=0 & rel_err <=0.05
+                      & dt >= 365 & dt<=730))
+
+M_EW <- M_EW/nrow(as_tibble(df_result) %>%
+                    
+                    filter(dt >= 365 & dt<=730))
+
+# ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
+M_EF <- nrow(as_tibble(df_result) %>%
+               
+               filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1) 
+                      & oscill >= 2.5 & damp >=1
+                      & rel_err >=0 & rel_err <=0.2
+                      & dt >= 365 & dt<=730))
+
+M_EF <- M_EF/nrow(as_tibble(df_result) %>%
+                    
+                    filter(dt >= 365 & dt<=730))
+
+
+# ( L_EW ) LONG SCALE -- EARLY WARNING  1460 A 730
+
+L_EW <- nrow(as_tibble(df_result) %>%
+               
+               filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1)
+                      & oscill >= 2.5 & damp >=0.8
+                      & rel_err >=0 & rel_err <=0.05
+                      & dt >= 730 & dt<=1460))
+
+L_EW <- L_EW/nrow(as_tibble(df_result) %>%
+                    
+                    filter(dt >= 730 & dt<=1460))
+
+# ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
+L_EF <- nrow(as_tibble(df_result) %>%
+               
+               filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                      #& tc <= t2+0.1*(t2-t1) 
+                      & oscill >= 2.5 & damp >=1
+                      & rel_err >=0 & rel_err <=0.2
+                      & dt >= 730 & dt<=1460))
+
+L_EF <- L_EF/nrow(as_tibble(df_result) %>%
+                    
+                    filter(dt >= 730 & dt<=1460))
+
+
+
+
+
+
+
+
 
 
 
