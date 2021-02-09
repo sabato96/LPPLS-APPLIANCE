@@ -10,9 +10,10 @@ library(progress)
 library(ggplot2)
 library(nloptr)
 library(optimx)
+library(latticeExtra)
 
 #get data
-filename <- "SP500.csv"
+filename <- "royal_mail.csv"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
@@ -25,7 +26,7 @@ ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
 
-ticker <- ticker[1:6730,]
+#ticker <- ticker[1:6730,]
 
 
 
@@ -167,14 +168,29 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
 
 # Script che lo lancia tu tutte le finestre temporali
 
-sub_ticker <- ticker[seq(nrow(ticker)-1350,nrow(ticker)),]
+compute_conf <- function(data,clusters=8,size=10){
+  
+  ticker <- data
 
-pb <- progress_bar$new(  format = "  processing [:bar] :percent in :elapsed",
-                         total = nrow(sub_ticker), clear = FALSE, width= 60)
+  
+ 
+  conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),
+                           SS_EF=rep(0,nrow(ticker)),
+                           S_EW=rep(0,nrow(ticker)),
+                           S_EF=rep(0,nrow(ticker)),
+                           M_EW=rep(0,nrow(ticker)),
+                           M_EF=rep(0,nrow(ticker)),
+                           L_EW=rep(0,nrow(ticker)),
+                           L_EF=rep(0,nrow(ticker)))
+    
+  ticker <- cbind(ticker,conf_ind)
+    
+  
+for(j in 0:size){
+    
+sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker))-j,1:3]
 
-
-
-cl <- parallel::makeForkCluster(8)
+cl <- parallel::makeForkCluster(clusters)
 doParallel::registerDoParallel(cl)
 
 
@@ -202,9 +218,7 @@ df_result <- foreach (i = seq(1,1437,1), .combine = rbind) %dopar% {
     )
     
   }  
-  
-  
-  pb$tick()
+
   
   return(result)
   
@@ -218,8 +232,9 @@ df_result <- as_tibble(df_result) %>%
   
                 filter(dt >= 40 & dt<=1460)
 
-# CALCOLA INDICATORE
 
+# CALCOLA INDICATORE
+#####
 # ( SS_EW ) SUPER SHORT SCALE (SS) _ EARLY WARNING __ 183 a 40
 SS_EW <- nrow(as_tibble(df_result) %>%
        
@@ -229,9 +244,10 @@ SS_EW <- nrow(as_tibble(df_result) %>%
                        & rel_err >=0 & rel_err <=0.05
                        & dt >= 40 & dt<=183))
 
-SS_EW <- SS_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],4]<- round(SS_EW/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=183))
+                      filter(dt >= 40 & dt<=183)),digits=5)
+
 
 
 # ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
@@ -243,9 +259,9 @@ SS_EF <- nrow(as_tibble(df_result) %>%
                       & rel_err >=0 & rel_err <=0.2
                       & dt >= 40 & dt<=183))
 
-SS_EF <- SS_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],5] <- round(SS_EF/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=183))
+                      filter(dt >= 40 & dt<=183)),digits=5)
 
 # ( S_EW ) SHORT SCALE -- EARLY WARNING  360 A 40
 
@@ -257,9 +273,9 @@ S_EW <- nrow(as_tibble(df_result) %>%
                        & rel_err >=0 & rel_err <=0.05
                        & dt >= 40 & dt<=360))
 
-S_EW <- S_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],6] <- round(S_EW/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=360))
+                      filter(dt >= 40 & dt<=360)),digits=5)
 
 # ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
 S_EF <- nrow(as_tibble(df_result) %>%
@@ -270,9 +286,9 @@ S_EF <- nrow(as_tibble(df_result) %>%
                        & rel_err >=0 & rel_err <=0.2
                        & dt >= 40 & dt<=360))
 
-S_EF <- S_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],7] <- round(S_EF/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=360))
+                      filter(dt >= 40 & dt<=360)),digits=5)
 
 
 # ( M_EW ) MEDIUM SCALE -- EARLY WARNING  365 A 730
@@ -285,9 +301,9 @@ M_EW <- nrow(as_tibble(df_result) %>%
                       & rel_err >=0 & rel_err <=0.05
                       & dt >= 365 & dt<=730))
 
-M_EW <- M_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],8] <- round(M_EW/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 365 & dt<=730))
+                    filter(dt >= 365 & dt<=730)),digits=5)
 
 # ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
 M_EF <- nrow(as_tibble(df_result) %>%
@@ -298,9 +314,9 @@ M_EF <- nrow(as_tibble(df_result) %>%
                       & rel_err >=0 & rel_err <=0.2
                       & dt >= 365 & dt<=730))
 
-M_EF <- M_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],9] <- round(M_EF/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 365 & dt<=730))
+                    filter(dt >= 365 & dt<=730)),digits = 5)
 
 
 # ( L_EW ) LONG SCALE -- EARLY WARNING  1460 A 730
@@ -313,9 +329,9 @@ L_EW <- nrow(as_tibble(df_result) %>%
                       & rel_err >=0 & rel_err <=0.05
                       & dt >= 730 & dt<=1460))
 
-L_EW <- L_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],10] <- round(L_EW/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 730 & dt<=1460))
+                    filter(dt >= 730 & dt<=1460)),digits=5)
 
 # ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
 L_EF <- nrow(as_tibble(df_result) %>%
@@ -326,20 +342,37 @@ L_EF <- nrow(as_tibble(df_result) %>%
                       & rel_err >=0 & rel_err <=0.2
                       & dt >= 730 & dt<=1460))
 
-L_EF <- L_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],11] <- round(L_EF/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 730 & dt<=1460))
+                    filter(dt >= 730 & dt<=1460)),digits=5)
+
+rm(SS_EW,SS_EF,S_EW,S_EF,M_EF,M_EW,L_EF,L_EW)
+######
+
+
+  }
+  
+  
+  return(ticker)
+}
+
+a <- compute_conf(ticker,size=30)
 
 
 
 
+# PLOTTING TEST
+
+
+plotdat <- a[1750:1847,]
 
 
 
+  plot.close <- xyplot(Close ~ Date, plotdat, type = "l")
+  plot.conf <- xyplot(SS_EF ~ Date, plotdat, type = "l")
 
-
-
-
+update(doubleYScale(plot.close,plot.conf,text=c("Price","ind"),add.ylab2 = TRUE, use.style=TRUE),
+             par.settings = simpleTheme(col = c('black','red')))
 
 
 
