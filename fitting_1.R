@@ -13,7 +13,8 @@ library(optimx)
 library(latticeExtra)
 
 #get data
-filename <- "royal_mail.csv"
+filename <- "SP500.csv"
+folder <- "data/SP500_WINDOWS/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
@@ -25,6 +26,8 @@ names(ticker) <- c("Date", "Close", "t")
 ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
+
+
 
 #ticker <- ticker[1:6730,]
 
@@ -161,14 +164,9 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
     
 }
 
-
-#RES=fitter(ticker[seq(nrow(ticker)-840,nrow(ticker)),],plot=TRUE)
-
-
-
 # Script che lo lancia tu tutte le finestre temporali
 
-compute_conf <- function(data,clusters=8,size=10){
+compute_conf <- function(data,clusters=8,size=10,save=FALSE){
   
   ticker <- data
 
@@ -186,7 +184,7 @@ compute_conf <- function(data,clusters=8,size=10){
   ticker <- cbind(ticker,conf_ind)
     
   
-for(j in 0:size){
+for(j in 51:size){
     
 sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker))-j,1:3]
 
@@ -231,6 +229,11 @@ parallel::stopCluster(cl)
 df_result <- as_tibble(df_result) %>%
   
                 filter(dt >= 40 & dt<=1460)
+
+#Salvare in csv risultato per singolo t2
+nome <- paste("df_result","_",j,".csv",sep="")
+
+write.csv(df_result,paste(folder,nome,sep=""))
 
 
 # CALCOLA INDICATORE
@@ -352,12 +355,21 @@ rm(SS_EW,SS_EF,S_EW,S_EF,M_EF,M_EW,L_EF,L_EW)
 
   }
   
+  if(save==TRUE){
+    
+    write.csv(ticker,paste(folder,filesname,"_","ANALYSIS",".csv",sep=""))
+    
+  }
+  
   
   return(ticker)
 }
 
-a <- compute_conf(ticker,size=30)
+compute_conf(ticker,size=140,save=TRUE)
 
+
+
+#SALVA FILE 
 
 
 
