@@ -29,7 +29,7 @@ ticker$Close <- as.numeric(ticker$Close)
 
 
 
-#ticker <- ticker[1:6730,]
+ticker <- ticker[1:4485,]
 
 
 
@@ -172,19 +172,28 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
 
   
  
-  conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),
-                           SS_EF=rep(0,nrow(ticker)),
-                           S_EW=rep(0,nrow(ticker)),
-                           S_EF=rep(0,nrow(ticker)),
-                           M_EW=rep(0,nrow(ticker)),
-                           M_EF=rep(0,nrow(ticker)),
-                           L_EW=rep(0,nrow(ticker)),
-                           L_EF=rep(0,nrow(ticker)))
+  conf_ind <- data.frame(P.SS_EW=rep(0,nrow(ticker)),
+                           P.SS_EF=rep(0,nrow(ticker)),
+                           P.S_EW=rep(0,nrow(ticker)),
+                           P.S_EF=rep(0,nrow(ticker)),
+                           P.M_EW=rep(0,nrow(ticker)),
+                           P.M_EF=rep(0,nrow(ticker)),
+                           P.L_EW=rep(0,nrow(ticker)),
+                           P.L_EF=rep(0,nrow(ticker)),
+                         N.SS_EW=rep(0,nrow(ticker)),
+                         N.SS_EF=rep(0,nrow(ticker)),
+                         N.S_EW=rep(0,nrow(ticker)),
+                         N.S_EF=rep(0,nrow(ticker)),
+                         N.M_EW=rep(0,nrow(ticker)),
+                         N.M_EF=rep(0,nrow(ticker)),
+                         N.L_EW=rep(0,nrow(ticker)),
+                         N.L_EF=rep(0,nrow(ticker))
+                         )
     
   ticker <- cbind(ticker,conf_ind)
     
   
-for(j in 0:(size+0)){
+for(j in 247:(size+247)){
     
 sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker)-j),1:3]
 
@@ -239,117 +248,226 @@ write.csv(df_result,paste(folder,nome,sep=""))
 # CALCOLA INDICATORE
 #####
 # ( SS_EW ) SUPER SHORT SCALE (SS) _ EARLY WARNING __ 183 a 40
-SS_EW <- nrow(as_tibble(df_result) %>%
+P.SS_EW <- nrow(as_tibble(df_result) %>%
        
               filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1)
                        & oscill >= 2.5 & damp >=0.8
                        & rel_err >=0 & rel_err <=0.05
-                       & dt >= 40 & dt<=183))
+                       & dt >= 40 & dt<=183
+                       & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],4]<- round(SS_EW/nrow(as_tibble(df_result) %>%
+
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],4]<- round(P.SS_EW/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=183)),digits=5)
+                      filter(dt >= 40 & dt<=183 & B<0)),digits=5)
 
+
+
+N.SS_EW <- nrow(as_tibble(df_result) %>%
+                  
+                  filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                         #& tc <= t2+0.1*(t2-t1)
+                         & oscill >= 2.5 & damp >=0.8
+                         & rel_err >=0 & rel_err <=0.05
+                         & dt >= 40 & dt<=183
+                         & B>0))
+
+
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],12]<- round(N.SS_EW/nrow(as_tibble(df_result) %>%
+                                                                                
+                      filter(dt >= 40 & dt<=183 & B>0)),digits=5)
 
 
 # ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
-SS_EF <- nrow(as_tibble(df_result) %>%
+P.SS_EF <- nrow(as_tibble(df_result) %>%
                 
                filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1) 
                       & oscill >= 2.5 & damp >=1
                       & rel_err >=0 & rel_err <=0.2
-                      & dt >= 40 & dt<=183))
+                      & dt >= 40 & dt<=183 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],5] <- round(SS_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],5] <- round(P.SS_EF/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=183)),digits=5)
+                      filter(dt >= 40 & dt<=183 & B<0)),digits=5)
+
+
+N.SS_EF <- nrow(as_tibble(df_result) %>%
+                  
+                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                         #& tc <= t2+0.1*(t2-t1) 
+                         & oscill >= 2.5 & damp >=1
+                         & rel_err >=0 & rel_err <=0.2
+                         & dt >= 40 & dt<=183 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],13] <- round(N.SS_EF/nrow(as_tibble(df_result) %>%
+                                                                                 
+                                                                                 filter(dt >= 40 & dt<=183 & B>0)),digits=5)
+
 
 # ( S_EW ) SHORT SCALE -- EARLY WARNING  360 A 40
 
-S_EW <- nrow(as_tibble(df_result) %>%
+P.S_EW <- nrow(as_tibble(df_result) %>%
                 
                 filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
                        #& tc <= t2+0.1*(t2-t1)
                        & oscill >= 2.5 & damp >=0.8
                        & rel_err >=0 & rel_err <=0.05
-                       & dt >= 40 & dt<=360))
+                       & dt >= 40 & dt<=360 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],6] <- round(S_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],6] <- round(P.S_EW/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=360)),digits=5)
+                      filter(dt >= 40 & dt<=360 & B<0)),digits=5)
+
+N.S_EW <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1)
+                        & oscill >= 2.5 & damp >=0.8
+                        & rel_err >=0 & rel_err <=0.05
+                        & dt >= 40 & dt<=360 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],14] <- round(N.S_EW/nrow(as_tibble(df_result) %>%
+                                                                                
+                                                                                filter(dt >= 40 & dt<=360 & B>0)),digits=5)
 
 # ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
-S_EF <- nrow(as_tibble(df_result) %>%
+P.S_EF <- nrow(as_tibble(df_result) %>%
                 
                 filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                        #& tc <= t2+0.1*(t2-t1) 
                        & oscill >= 2.5 & damp >=1
                        & rel_err >=0 & rel_err <=0.2
-                       & dt >= 40 & dt<=360))
+                       & dt >= 40 & dt<=360 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],7] <- round(S_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],7] <- round(P.S_EF/nrow(as_tibble(df_result) %>%
                       
-                      filter(dt >= 40 & dt<=360)),digits=5)
+                      filter(dt >= 40 & dt<=360 & B<0)),digits=5)
+
+N.S_EF <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1) 
+                        & oscill >= 2.5 & damp >=1
+                        & rel_err >=0 & rel_err <=0.2
+                        & dt >= 40 & dt<=360 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],15] <- round(N.S_EF/nrow(as_tibble(df_result) %>%
+                                                                                
+                                                                                filter(dt >= 40 & dt<=360 & B>0)),digits=5)
+
 
 
 # ( M_EW ) MEDIUM SCALE -- EARLY WARNING  365 A 730
 
-M_EW <- nrow(as_tibble(df_result) %>%
+P.M_EW <- nrow(as_tibble(df_result) %>%
                
                filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1)
                       & oscill >= 2.5 & damp >=0.8
                       & rel_err >=0 & rel_err <=0.05
-                      & dt >= 365 & dt<=730))
+                      & dt >= 365 & dt<=730 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],8] <- round(M_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],8] <- round(P.M_EW/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 365 & dt<=730)),digits=5)
+                    filter(dt >= 365 & dt<=730 & B<0)),digits=5)
+
+
+N.M_EW <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1)
+                        & oscill >= 2.5 & damp >=0.8
+                        & rel_err >=0 & rel_err <=0.05
+                        & dt >= 365 & dt<=730 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],16] <- round(N.M_EW/nrow(as_tibble(df_result) %>%
+                                                                                
+                                                                                filter(dt >= 365 & dt<=730 & B>0)),digits=5)
+
 
 # ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
-M_EF <- nrow(as_tibble(df_result) %>%
+P.M_EF <- nrow(as_tibble(df_result) %>%
                
                filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1) 
                       & oscill >= 2.5 & damp >=1
                       & rel_err >=0 & rel_err <=0.2
-                      & dt >= 365 & dt<=730))
+                      & dt >= 365 & dt<=730 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],9] <- round(M_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],9] <- round(P.M_EF/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 365 & dt<=730)),digits = 5)
+                    filter(dt >= 365 & dt<=730 & B<0)),digits = 5)
+
+N.M_EF <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1) 
+                        & oscill >= 2.5 & damp >=1
+                        & rel_err >=0 & rel_err <=0.2
+                        & dt >= 365 & dt<=730 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],17] <- round(N.M_EF/nrow(as_tibble(df_result) %>%
+                                                                                
+                                                                                filter(dt >= 365 & dt<=730 & B>0)),digits = 5)
 
 
 # ( L_EW ) LONG SCALE -- EARLY WARNING  1460 A 730
 
-L_EW <- nrow(as_tibble(df_result) %>%
+P.L_EW <- nrow(as_tibble(df_result) %>%
                
                filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1)
                       & oscill >= 2.5 & damp >=0.8
                       & rel_err >=0 & rel_err <=0.05
-                      & dt >= 730 & dt<=1460))
+                      & dt >= 730 & dt<=1460 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],10] <- round(L_EW/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],10] <- round(P.L_EW/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 730 & dt<=1460)),digits=5)
+                    filter(dt >= 730 & dt<=1460 & B<0)),digits=5)
+
+N.L_EW <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1)
+                        & oscill >= 2.5 & damp >=0.8
+                        & rel_err >=0 & rel_err <=0.05
+                        & dt >= 730 & dt<=1460 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],18] <- round(N.L_EW/nrow(as_tibble(df_result) %>%
+                                                                                 
+                                                                                 filter(dt >= 730 & dt<=1460 & B>0)),digits=5)
 
 # ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
-L_EF <- nrow(as_tibble(df_result) %>%
+P.L_EF <- nrow(as_tibble(df_result) %>%
                
                filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                       #& tc <= t2+0.1*(t2-t1) 
                       & oscill >= 2.5 & damp >=1
                       & rel_err >=0 & rel_err <=0.2
-                      & dt >= 730 & dt<=1460))
+                      & dt >= 730 & dt<=1460 & B<0))
 
-ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],11] <- round(L_EF/nrow(as_tibble(df_result) %>%
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],11] <- round(P.L_EF/nrow(as_tibble(df_result) %>%
                     
-                    filter(dt >= 730 & dt<=1460)),digits=5)
+                    filter(dt >= 730 & dt<=1460 & B<0)),digits=5)
 
-rm(SS_EW,SS_EF,S_EW,S_EF,M_EF,M_EW,L_EF,L_EW)
+N.L_EF <- nrow(as_tibble(df_result) %>%
+                 
+                 filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                        #& tc <= t2+0.1*(t2-t1) 
+                        & oscill >= 2.5 & damp >=1
+                        & rel_err >=0 & rel_err <=0.2
+                        & dt >= 730 & dt<=1460 & B>0))
+
+ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],19] <- round(N.L_EF/nrow(as_tibble(df_result) %>%
+                                                                                 
+                                                                                 filter(dt >= 730 & dt<=1460 & B>0)),digits=5)
+
+
+
 ######
 
 
@@ -365,7 +483,7 @@ rm(SS_EW,SS_EF,S_EW,S_EF,M_EF,M_EW,L_EF,L_EW)
   return(ticker)
 }
 
-compute_conf(ticker,size=5,save=TRUE)
+compute_conf(ticker,size=600,save=TRUE)
 
 
 
@@ -374,23 +492,38 @@ compute_conf(ticker,size=5,save=TRUE)
 
 
 # PLOTTING TEST
+#FILL THE NA
+a[is.na(a)] <- 0
+
+plotdat <- a[2000:4485,]
 
 
-plotdat <- a[1750:1847,]
 
 
+#for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
 
+  for (i in 5:20){
+  
   plot.close <- xyplot(Close ~ Date, plotdat, type = "l")
-  plot.conf <- xyplot(SS_EF ~ Date, plotdat, type = "l")
+  plot.conf <- xyplot(as.formula(paste(names(plotdat[,i]),"~","Date",sep=""))
+                      , plotdat, type = "l")
 
-update(doubleYScale(plot.close,plot.conf,text=c("Price","ind"),add.ylab2 = TRUE, use.style=TRUE),
+  
+  
+  jpeg(paste(folder,"plots/",names(plotdat[,i]),"_","SP500",".jpeg",sep=""),height = 1080,width=1920) 
+  
+plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[,i])),add.ylab2 = TRUE, use.style=TRUE),
              par.settings = simpleTheme(col = c('black','red')))
 
+print(plot_)
+
+dev.off()
+}
 
 
 # TEST
 
-
+names(plotdat[,5])
 
 
 
