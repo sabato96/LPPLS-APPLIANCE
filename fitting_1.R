@@ -184,9 +184,9 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
   ticker <- cbind(ticker,conf_ind)
     
   
-for(j in 51:size){
+for(j in 0:(size+0)){
     
-sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker))-j,1:3]
+sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker)-j),1:3]
 
 cl <- parallel::makeForkCluster(clusters)
 doParallel::registerDoParallel(cl)
@@ -365,7 +365,7 @@ rm(SS_EW,SS_EF,S_EW,S_EF,M_EF,M_EW,L_EF,L_EW)
   return(ticker)
 }
 
-compute_conf(ticker,size=140,save=TRUE)
+compute_conf(ticker,size=5,save=TRUE)
 
 
 
@@ -385,6 +385,14 @@ plotdat <- a[1750:1847,]
 
 update(doubleYScale(plot.close,plot.conf,text=c("Price","ind"),add.ylab2 = TRUE, use.style=TRUE),
              par.settings = simpleTheme(col = c('black','red')))
+
+
+
+# TEST
+
+
+
+
 
 
 
