@@ -579,7 +579,7 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=3,save=TRUE)
+compute_conf(ticker,size=300,save=TRUE)
 
 
 
@@ -593,7 +593,7 @@ compute_conf(ticker,size=3,save=TRUE)
 
 a[is.na(a)] <- 0
 
-plotdat <- a[2000:4485,]
+plotdat <- a[3552:4485,]
 
 
 
@@ -617,6 +617,14 @@ for (i in 5:20){
   
   dev.off()
 }
+
+
+#CRASH LOCK IN PLOT
+a[is.na(a)] <- 0
+x <- a[3600:4000,]
+
+ggplot(x, aes(x=Date))+
+  geom_line(aes(y=P.L_tc))
 
 
 # TEST
