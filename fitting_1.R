@@ -717,14 +717,29 @@ for (i in 4:19){
 
 #CRASH LOCK IN PLOT
 a[is.na(a)] <- 0
-x <- a[4000:6369,]
+x <- a[3000:6369,]
 
-ggplot(x, aes(x=Date))+
-  geom_line(aes(y=P.M_tc))
+b <- as.vector(a$N.SS_tc)
+b <- b[which(b>0)]
+
+ggplot(x, aes(x=N.SS_tc))+
+  #geom_line()+
+  geom_density()
 
 
-# TEST
+# DENSITY PLOT FOR TC
 
-names(plotdat[,5])
+# tolgo i valori uguali a 0 e faccio density plot
+
+a[["N.SS_tc"]]
+
+
+b <- as.vector(a$N.SS_tc)
+b <- b[which(b>0)]
+cc <- density(b)
+output <- data.frame(tempo=cc[["x"]],dens=cc[["y"]])
+
+finale <- merge(a,output,by.x="t",by.y="tempo")
+
 
 
