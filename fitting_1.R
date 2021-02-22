@@ -679,12 +679,19 @@ compute_conf(ticker,size=180,diff=0,save=TRUE)
 # PLOTTING TEST
 #FILL THE NA
 
-
+a <- a[,-1]
 a[is.na(a)] <- 0
 
+
+
+# Facciamo media mobile degli indicatori
+k=15
+
+b <- rollmean(a[,4:19], k=k,fill=NA,align = "right")
+
+a[c(k:nrow(a)),4:19] <- b[k:nrow(a),1:16]
+
 plotdat <- a[3300:6396,]
-
-
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
