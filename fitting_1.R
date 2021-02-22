@@ -287,7 +287,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],4]<- round(P.SS_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=183 & B<0 & hazard>0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=183 
+                                                                                           & B<0 
+                                                                                           #& hazard>0
+                                                                                           )),digits=5)
     
     
     N.SS_EW <- nrow(as_tibble(df_result) %>%
@@ -303,7 +306,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],12]<- round(N.SS_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=183 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=183 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
  
     # ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
@@ -318,7 +324,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],5] <- round(P.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=183 & B<0 & hazard>0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=183 
+                                                                                            & B<0 
+                                                                                            #& hazard>0
+                                                                                            )),digits=5)
     
     
     #critical time mediana
@@ -348,7 +357,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],13] <- round(N.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                       
-                                                                                      filter(dt >= 40 & dt<=183 & B>0 & hazard<0)),digits=5)
+                                                                                      filter(dt >= 40 & dt<=183 
+                                                                                             & B>0 
+                                                                                             #& hazard<0
+                                                                                             )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],24] <- median(unlist((as_tibble(df_result) %>%
@@ -377,7 +389,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],6] <- round(P.S_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=360 & B<0 & hazard>0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=360 
+                                                                                           & B<0 
+                                                                                           #& hazard>0
+                                                                                           )),digits=5)
     
     N.S_EW <- nrow(as_tibble(df_result) %>%
                      
@@ -390,7 +405,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],14] <- round(N.S_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=360 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=360 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
     # ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
     P.S_EF <- nrow(as_tibble(df_result) %>%
@@ -404,7 +422,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],7] <- round(P.S_EF/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=360 & B<0 & hazard>0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=360 
+                                                                                           & B<0 
+                                                                                           #& hazard>0
+                                                                                           )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],21] <- median(unlist((as_tibble(df_result) %>%
@@ -429,7 +450,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],15] <- round(N.S_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=360 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=360 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],25] <- median(unlist((as_tibble(df_result) %>%
@@ -457,7 +481,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],8] <- round(P.M_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 365 & dt<=730 & B<0 & hazard>0)),digits=5)
+                                                                                    filter(dt >= 365 & dt<=730 
+                                                                                           & B<0 
+                                                                                           #& hazard>0
+                                                                                           )),digits=5)
     
     
     N.M_EW <- nrow(as_tibble(df_result) %>%
@@ -471,7 +498,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],16] <- round(N.M_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 365 & dt<=730 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 365 & dt<=730 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
     
     # ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
@@ -486,7 +516,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],9] <- round(P.M_EF/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 365 & dt<=730 & B<0 & hazard>0)),digits = 5)
+                                                                                    filter(dt >= 365 & dt<=730 
+                                                                                           & B<0 
+                                                                                           #& hazard>0
+                                                                                           )),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],22] <- median(unlist((as_tibble(df_result) %>%
@@ -511,7 +544,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],17] <- round(N.M_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 365 & dt<=730 & B>0 & hazard<0)),digits = 5)
+                                                                                     filter(dt >= 365 & dt<=730 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],26] <- median(unlist((as_tibble(df_result) %>%
@@ -539,7 +575,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],10] <- round(P.L_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B<0 & hazard>0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 
+                                                                                            & B<0 
+                                                                                            #& hazard>0
+                                                                                            )),digits=5)
     
     N.L_EW <- nrow(as_tibble(df_result) %>%
                      
@@ -552,7 +591,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],18] <- round(N.L_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
     # ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
     P.L_EF <- nrow(as_tibble(df_result) %>%
@@ -566,7 +608,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],11] <- round(P.L_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B<0 & hazard>0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 
+                                                                                            & B<0 
+                                                                                            #& hazard>0
+                                                                                            )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],23] <- median(unlist((as_tibble(df_result) %>%
@@ -591,7 +636,10 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],19] <- round(N.L_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B>0 & hazard<0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 
+                                                                                            & B>0 
+                                                                                            #& hazard<0
+                                                                                            )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],27] <- median(unlist((as_tibble(df_result) %>%
@@ -620,7 +668,7 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=2400,diff=0,save=TRUE)
+compute_conf(ticker,size=180,diff=0,save=TRUE)
 
 
 
@@ -634,7 +682,7 @@ compute_conf(ticker,size=2400,diff=0,save=TRUE)
 
 a[is.na(a)] <- 0
 
-plotdat <- a[3000:6396,]
+plotdat <- a[3300:6396,]
 
 
 
