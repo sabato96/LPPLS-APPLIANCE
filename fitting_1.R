@@ -28,7 +28,7 @@ ticker$Close <- as.numeric(ticker$Close)
 
 
 
-ticker <- ticker[1:4485,]
+ticker <- ticker[17000:23395,]
 
 
 
@@ -84,6 +84,7 @@ funz_obj <- function(x,data){
   return(RSS)
   
 }
+
 fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   
   ticker <- data
@@ -116,6 +117,10 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
     
   }
   
+  if(type=="Nelder"){
+    
+    test <- nloptr::neldermead(start_search,funz_obj,lower=lower,upper=upper,data=ticker)
+  }
   
   
   linear_param <- matrix_eq(ticker,test$par[1], test$par[2], test$par[3])
@@ -129,6 +134,13 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   }
   
   
+  #Test radice unitaria su residui
+  
+  residual <- log(ticker$Close)-fitted
+  
+  test.resid <- suppressWarnings(kpss.test(residual)[1] )#Test stazionarieta' residui
+  
+  rownames(test.resid) <- c()
   
   results <- data.frame(first_row$Date,
                         last_row$Date, 
@@ -144,19 +156,24 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
                         linear_param[2], #B
                         linear_param[3], #C1
                         linear_param[4], #C2
-                        (test$par[3]/(2*pi))*log(abs((test$par[1])/(test$par[1]-last_row$t))),
+                        #(test$par[3]/(2*pi))*log(abs((test$par[1])/(test$par[1]-last_row$t))),
+                        (test$par[3]/(2))*log(abs((test$par[1]-first_row$t)/(last_row$t-first_row$t))),#number oscillation
                         (test$par[2]*abs(linear_param[2]))/(test$par[3]
                                                             *abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                         #*abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))
                         
-                        (log(last_row$Close)-fitted[length(fitted)])/fitted[length(fitted)] 
+                        abs((log(last_row$Close)-fitted[length(fitted)])/fitted[length(fitted)]),
+                        last_row$t-0.05*dt,
+                        last_row$t+0.1*dt,
+                        - linear_param[2] * test$par[2] - abs((linear_param[3]^2+linear_param[4]^2)^0.5)* sqrt(test$par[2]^2+test$par[3]^2),#fantazzini
+                        test.resid
   )
   
   names(results) <- c("start_date","end_date","last_price","dt","LPPL_max","tc-end.t",
-                      "day_to_tc","m","w","tc","A","B","C1","C2","oscill","damp","rel_err")
+                      "day_to_tc","m","w","tc","A","B","C1","C2","oscill","damp","rel_err","dt_filter_low","dt_filter_high","hazard","test.resid")
   
   
-  
+  rownames(results) <- c()
   
   
   return(results)
@@ -165,7 +182,7 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
 
 # Script che lo lancia tu tutte le finestre temporali
 
-compute_conf <- function(data,clusters=8,size=10,save=FALSE){
+compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
   
   ticker <- data
   
@@ -202,7 +219,7 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
   ticker <- cbind(ticker,conf_ind)
   
   
-  for(j in 600:(size+600)){
+  for(j in diff:(size+diff)){
     
     sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker)-j),1:3]
     
@@ -229,7 +246,7 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
         
         attempt <- attempt +1
         try(
-          result <- fitter(r.ticker),
+          result <- fitter(r.ticker,type="CMAES"),
           silent=TRUE
         )
         
@@ -260,57 +277,61 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
     P.SS_EW <- nrow(as_tibble(df_result) %>%
                       
                       filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                             #& tc <= t2+0.1*(t2-t1)
+                             & tc <= dt_filter_high & tc >= dt_filter_low 
                              & oscill >= 2.5 & damp >=0.8
                              & rel_err >=0 & rel_err <=0.05
                              & dt >= 40 & dt<=183
-                             & B<0))
+                             & B<0 & test.resid<0.463 & hazard>0))
     
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],4]<- round(P.SS_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=183 & B<0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=183 & B<0 & hazard>0)),digits=5)
     
     
     N.SS_EW <- nrow(as_tibble(df_result) %>%
                       
                       filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                             #& tc <= t2+0.1*(t2-t1)
+                             & tc <= dt_filter_high & tc >= dt_filter_low 
                              & oscill >= 2.5 & damp >=0.8
                              & rel_err >=0 & rel_err <=0.05
                              & dt >= 40 & dt<=183
-                             & B>0))
+                             & B>0 & test.resid<0.463 & hazard<0))
     
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],12]<- round(N.SS_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=183 & B>0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=183 & B>0 & hazard<0)),digits=5)
     
  
     # ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
     P.SS_EF <- nrow(as_tibble(df_result) %>%
                       
                       filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                             #& tc <= t2+0.1*(t2-t1) 
+                             & tc <= dt_filter_high & tc >= dt_filter_low
                              & oscill >= 2.5 & damp >=1
                              & rel_err >=0 & rel_err <=0.2
-                             & dt >= 40 & dt<=183 & B<0))
+                             & dt >= 40 & dt<=183 
+                             & B<0 & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],5] <- round(P.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=183 & B<0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=183 & B<0 & hazard>0)),digits=5)
     
     
     #critical time mediana
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],20] <- median(unlist((as_tibble(df_result) %>%
       
-      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-             #& tc <= t2+0.1*(t2-t1) 
-             & oscill >= 2.5 & damp >=1
-             & rel_err >=0 & rel_err <=0.2
-             & dt >= 40 & dt<=183 & B<0))[,10]))
+      filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+             #& tc <= dt_filter_high & tc >= dt_filter_low
+             #& oscill >= 2.5 & damp >=1
+             #& rel_err >=0 & rel_err <=0.2
+             #&
+               dt >= 40 & dt<=183 & B<0
+             #& test.resid<0.463 & hazard>0
+             ))[,10]))
     
     
     
@@ -319,23 +340,25 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
     N.SS_EF <- nrow(as_tibble(df_result) %>%
                       
                       filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                             #& tc <= t2+0.1*(t2-t1) 
+                             & tc <= dt_filter_high & tc >= dt_filter_low
                              & oscill >= 2.5 & damp >=1
                              & rel_err >=0 & rel_err <=0.2
-                             & dt >= 40 & dt<=183 & B>0))
+                             & dt >= 40 & dt<=183 & B>0
+                             &  test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],13] <- round(N.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                       
-                                                                                      filter(dt >= 40 & dt<=183 & B>0)),digits=5)
+                                                                                      filter(dt >= 40 & dt<=183 & B>0 & hazard<0)),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],24] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 40 & dt<=183 & B>0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 40 & dt<=183 & B>0 & hazard<0))[,10]))
     
     
     
@@ -346,71 +369,77 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
     P.S_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            & tc <= dt_filter_high & tc >= dt_filter_low
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 40 & dt<=360 & B<0))
+                            & dt >= 40 & dt<=360 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],6] <- round(P.S_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=360 & B<0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=360 & B<0 & hazard>0)),digits=5)
     
     N.S_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            & tc <= dt_filter_high & tc >= dt_filter_low
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 40 & dt<=360 & B>0))
+                            & dt >= 40 & dt<=360 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],14] <- round(N.S_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=360 & B>0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=360 & B>0 & hazard<0)),digits=5)
     
     # ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
     P.S_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 40 & dt<=360 & B<0))
+                            & dt >= 40 & dt<=360 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],7] <- round(P.S_EF/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 40 & dt<=360 & B<0)),digits=5)
+                                                                                    filter(dt >= 40 & dt<=360 & B<0 & hazard>0)),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],21] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 40 & dt<=360 & B<0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 40 & dt<=360 & B<0 & hazard>0))[,10]))
     
     
     
     N.S_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 40 & dt<=360 & B>0))
+                            & dt >= 40 & dt<=360 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],15] <- round(N.S_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 40 & dt<=360 & B>0)),digits=5)
+                                                                                     filter(dt >= 40 & dt<=360 & B>0 & hazard<0)),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],25] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 40 & dt<=360 & B>0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 40 & dt<=360 & B>0 & hazard <0))[,10]))
     
     
     
@@ -420,73 +449,79 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
     P.M_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 365 & dt<=730 & B<0))
+                            & dt >= 365 & dt<=730 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],8] <- round(P.M_EW/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 365 & dt<=730 & B<0)),digits=5)
+                                                                                    filter(dt >= 365 & dt<=730 & B<0 & hazard>0)),digits=5)
     
     
     N.M_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            &tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 365 & dt<=730 & B>0))
+                            & dt >= 365 & dt<=730 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],16] <- round(N.M_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 365 & dt<=730 & B>0)),digits=5)
+                                                                                     filter(dt >= 365 & dt<=730 & B>0 & hazard<0)),digits=5)
     
     
     # ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
     P.M_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            &tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 365 & dt<=730 & B<0))
+                            & dt >= 365 & dt<=730 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],9] <- round(P.M_EF/nrow(as_tibble(df_result) %>%
                                                                                     
-                                                                                    filter(dt >= 365 & dt<=730 & B<0)),digits = 5)
+                                                                                    filter(dt >= 365 & dt<=730 & B<0 & hazard>0)),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],22] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 365 & dt<=730 & B<0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 365 & dt<=730 & B<0 &  hazard>0))[,10]))
     
     
     
     N.M_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 365 & dt<=730 & B>0))
+                            & dt >= 365 & dt<=730 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],17] <- round(N.M_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 365 & dt<=730 & B>0)),digits = 5)
+                                                                                     filter(dt >= 365 & dt<=730 & B>0 & hazard<0)),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],26] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 365 & dt<=730 & B>0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 365 & dt<=730 & B>0 & hazard<0))[,10]))
     
     
     
@@ -496,71 +531,77 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
     P.L_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 730 & dt<=1460 & B<0))
+                            & dt >= 730 & dt<=1460 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],10] <- round(P.L_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B<0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 & B<0 & hazard>0)),digits=5)
     
     N.L_EW <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 1.2 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1)
+                            & tc <= dt_filter_high & tc >= dt_filter_low 
                             & oscill >= 2.5 & damp >=0.8
                             & rel_err >=0 & rel_err <=0.05
-                            & dt >= 730 & dt<=1460 & B>0))
+                            & dt >= 730 & dt<=1460 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],18] <- round(N.L_EW/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B>0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 & B>0 & hazard<0)),digits=5)
     
     # ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
     P.L_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            & tc <= dt_filter_high & tc >= dt_filter_low
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 730 & dt<=1460 & B<0))
+                            & dt >= 730 & dt<=1460 & B<0
+                            & test.resid<0.463 & hazard>0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],11] <- round(P.L_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B<0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 & B<0 & hazard>0)),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],23] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 730 & dt<=1460 & B<0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 730 & dt<=1460 & B<0 & hazard>0))[,10]))
     
     
     
     N.L_EF <- nrow(as_tibble(df_result) %>%
                      
                      filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                            #& tc <= t2+0.1*(t2-t1) 
+                            & tc <= dt_filter_high & tc >= dt_filter_low
                             & oscill >= 2.5 & damp >=1
                             & rel_err >=0 & rel_err <=0.2
-                            & dt >= 730 & dt<=1460 & B>0))
+                            & dt >= 730 & dt<=1460 & B>0
+                            & test.resid<0.463 & hazard<0))
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],19] <- round(N.L_EF/nrow(as_tibble(df_result) %>%
                                                                                      
-                                                                                     filter(dt >= 730 & dt<=1460 & B>0)),digits=5)
+                                                                                     filter(dt >= 730 & dt<=1460 & B>0 & hazard<0)),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],27] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
-                                                                                  filter(m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
                                                                                          #& tc <= t2+0.1*(t2-t1) 
-                                                                                         & oscill >= 2.5 & damp >=1
-                                                                                         & rel_err >=0 & rel_err <=0.2
-                                                                                         & dt >= 730 & dt<=1460 & B>0))[,10]))
+                                                                                         #& oscill >= 2.5 & damp >=1
+                                                                                         #& rel_err >=0 & rel_err <=0.2
+                                                                                         #&
+                                                                                           dt >= 730 & dt<=1460 & B>0 & hazard<0))[,10]))
     
     
     
@@ -579,7 +620,7 @@ compute_conf <- function(data,clusters=8,size=10,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=300,save=TRUE)
+compute_conf(ticker,size=500,diff=2401,save=TRUE)
 
 
 
@@ -593,14 +634,14 @@ compute_conf(ticker,size=300,save=TRUE)
 
 a[is.na(a)] <- 0
 
-plotdat <- a[3552:4485,]
+plotdat <- a[3000:6396,]
 
 
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
 
-for (i in 5:20){
+for (i in 4:19){
   
   plot.close <- xyplot(Close ~ Date, plotdat, type = "l")
   plot.conf <- xyplot(as.formula(paste(names(plotdat[,i]),"~","Date",sep=""))
@@ -621,10 +662,10 @@ for (i in 5:20){
 
 #CRASH LOCK IN PLOT
 a[is.na(a)] <- 0
-x <- a[3600:4000,]
+x <- a[4000:6369,]
 
 ggplot(x, aes(x=Date))+
-  geom_line(aes(y=P.L_tc))
+  geom_line(aes(y=P.M_tc))
 
 
 # TEST
