@@ -138,7 +138,7 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   
   residual <- log(ticker$Close)-fitted
   
-  test.resid <- suppressWarnings(kpss.test(residual)[1] )#Test stazionarieta' residui
+  test.resid <- suppressWarnings(tseries::kpss.test(residual)[1] )#Test stazionarieta' residui
   
   rownames(test.resid) <- c()
   
@@ -156,8 +156,8 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
                         linear_param[2], #B
                         linear_param[3], #C1
                         linear_param[4], #C2
-                        #(test$par[3]/(2*pi))*log(abs((test$par[1])/(test$par[1]-last_row$t))),
-                        (test$par[3]/(2))*log(abs((test$par[1]-first_row$t)/(last_row$t-first_row$t))),#number oscillation
+                        (test$par[3]/(2*pi))*log(abs((test$par[1])/(test$par[1]-last_row$t))),
+                        #(test$par[3]/(2))*log(abs((test$par[1]-first_row$t)/(last_row$t-first_row$t))),#number oscillation
                         (test$par[2]*abs(linear_param[2]))/(test$par[3]
                                                             *abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                         #*abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))
@@ -246,7 +246,7 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
         
         attempt <- attempt +1
         try(
-          result <- fitter(r.ticker,type="CMAES"),
+          result <- fitter(r.ticker),
           silent=TRUE
         )
         
@@ -620,7 +620,7 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=500,diff=2401,save=TRUE)
+compute_conf(ticker,size=2400,diff=0,save=TRUE)
 
 
 
