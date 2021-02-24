@@ -28,7 +28,8 @@ ticker$Close <- as.numeric(ticker$Close)
 
 
 
-ticker <- ticker[17000:23395,]
+ticker <- ticker[19000:23395,]
+
 
 
 
@@ -85,7 +86,7 @@ funz_obj <- function(x,data){
   
 }
 
-fitter <- function(data,type="L-BFGS-B",plot=FALSE){
+fitter <- function(data,type="mlsl",plot=FALSE){
   
   ticker <- data
   
@@ -94,8 +95,8 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   dt <- last_row$t -first_row$t
   
   start_search <- c(runif(1,max(ticker$t)-0.2*dt,max(ticker$t)+0.2*dt),
-                    runif(1,0.01,2),
-                    runif(1,9,21))
+                    runif(1,0.01,1.99),
+                    runif(1,1,50))
   
   upper <- c(max(ticker$t)+0.2*dt,2,50)
   lower <- c(max(ticker$t)-0.2*dt,0.01,1)
@@ -108,18 +109,39 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
   
   if(type=="CMAES"){
     
-    nbre_generation <- 50
+    nbre_generation <- 100
     
     vec_control <- data.frame(maxit = c(nbre_generation))
     
     test <- cmaes::cma_es(start_search, funz_obj, ticker, 
-                          lower=c(max(ticker$t)-0.2*dt, 0.0001, 1), upper=c(max(ticker$t)+0.2*dt, 2, 50), control=vec_control)
+                          lower=c(max(ticker$t)-0.2*dt, 0.01, 1), upper=c(max(ticker$t)+0.2*dt, 1, 50), control=vec_control)
     
   }
   
-  if(type=="Nelder"){
+  
+  if(type=="contr"){
     
-    test <- nloptr::neldermead(start_search,funz_obj,lower=lower,upper=upper,data=ticker)
+    test <- crs2lm(start_search, funz_obj, lower=lower, upper=upper, data=ticker)
+    
+    
+  }
+  
+  if(type=="isres"){#MIGLIORE secondo
+    
+    test <- isres(start_search,funz_obj,lower=lower,upper=upper,data=ticker)
+    
+  }
+  
+  if(type=="mlsl"){#MIGLIORE IN ASSOLUTO
+    
+    test <- mlsl(start_search,funz_obj,lower=lower,upper=upper,local.method = "LBFGS",data=ticker)
+    
+  }
+  
+  if(type=="nelder"){
+    
+    test <- neldermead(start_search,funz_obj,lower=lower,upper=upper, data=ticker)
+    
   }
   
   
@@ -166,11 +188,12 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
                         last_row$t-0.05*dt,
                         last_row$t+0.1*dt,
                         - linear_param[2] * test$par[2] - abs((linear_param[3]^2+linear_param[4]^2)^0.5)* sqrt(test$par[2]^2+test$par[3]^2),#fantazzini
-                        test.resid
+                        test.resid,
+                        sum(residual^2)
   )
   
   names(results) <- c("start_date","end_date","last_price","dt","LPPL_max","tc-end.t",
-                      "day_to_tc","m","w","tc","A","B","C1","C2","oscill","damp","rel_err","dt_filter_low","dt_filter_high","hazard","test.resid")
+                      "day_to_tc","m","w","tc","A","B","C1","C2","oscill","damp","rel_err","dt_filter_low","dt_filter_high","hazard","test.resid","resid")
   
   
   rownames(results) <- c()
@@ -182,7 +205,7 @@ fitter <- function(data,type="L-BFGS-B",plot=FALSE){
 
 # Script che lo lancia tu tutte le finestre temporali
 
-compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
+compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
   
   ticker <- data
   
@@ -668,7 +691,7 @@ compute_conf <- function(data,clusters=8,size=10,diff=1,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=180,diff=0,save=TRUE)
+compute_conf(ticker,size=3000,diff=0,save=TRUE)
 
 
 
@@ -684,14 +707,16 @@ a[is.na(a)] <- 0
 
 
 
-# Facciamo media mobile degli indicatori
+# Facciamo media mobile degli indicatori (da aggiustare)
 k=15
 
 b <- rollmean(a[,4:19], k=k,fill=NA,align = "right")
 
 a[c(k:nrow(a)),4:19] <- b[k:nrow(a),1:16]
 
-plotdat <- a[3300:6396,]
+
+
+plotdat <- a[5000:9396,]
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
@@ -717,12 +742,12 @@ for (i in 4:19){
 
 #CRASH LOCK IN PLOT
 a[is.na(a)] <- 0
-x <- a[3000:6369,]
+x <- a[9000:9396,]
 
-b <- as.vector(a$N.SS_tc)
-b <- b[which(b>0)]
+b <- as.vector(x$P.SS_tc)
+b <- data.frame(P.SS_tc=b[which(b>0)])
 
-ggplot(x, aes(x=N.SS_tc))+
+ggplot(b, aes(x=P.SS_tc))+
   #geom_line()+
   geom_density()
 
