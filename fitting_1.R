@@ -28,7 +28,7 @@ ticker$Close <- as.numeric(ticker$Close)
 
 
 
-ticker <- ticker[19000:23395,]
+ticker <- ticker[15000:23395,]
 
 
 
