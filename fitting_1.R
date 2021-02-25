@@ -86,7 +86,7 @@ funz_obj <- function(x,data){
   
 }
 
-fitter <- function(data,type="mlsl",plot=FALSE){
+fitter <- function(data,plot=FALSE){
   
   ticker <- data
   
@@ -100,50 +100,50 @@ fitter <- function(data,type="mlsl",plot=FALSE){
   
   upper <- c(max(ticker$t)+0.2*dt,2,50)
   lower <- c(max(ticker$t)-0.2*dt,0.01,1)
-  
-  if(type=="L-BFGS-B"){
-    
-    test <- optim(start_search,funz_obj,lower=lower,upper=upper,method="L-BFGS-B",data=ticker)
-    
-  } 
-  
-  if(type=="CMAES"){
-    
-    nbre_generation <- 100
-    
-    vec_control <- data.frame(maxit = c(nbre_generation))
-    
-    test <- cmaes::cma_es(start_search, funz_obj, ticker, 
-                          lower=c(max(ticker$t)-0.2*dt, 0.01, 1), upper=c(max(ticker$t)+0.2*dt, 1, 50), control=vec_control)
-    
-  }
-  
-  
-  if(type=="contr"){
-    
-    test <- crs2lm(start_search, funz_obj, lower=lower, upper=upper, data=ticker)
-    
-    
-  }
-  
-  if(type=="isres"){#MIGLIORE secondo
-    
-    test <- isres(start_search,funz_obj,lower=lower,upper=upper,data=ticker)
-    
-  }
-  
-  if(type=="mlsl"){#MIGLIORE IN ASSOLUTO
+  # 
+  # if(type=="L-BFGS-B"){
+  #   
+  #   test <- optim(start_search,funz_obj,lower=lower,upper=upper,method="L-BFGS-B",data=ticker)
+  #   
+  # } 
+  # 
+  # if(type=="CMAES"){
+  #   
+  #   nbre_generation <- 100
+  #   
+  #   vec_control <- data.frame(maxit = c(nbre_generation))
+  #   
+  #   test <- cmaes::cma_es(start_search, funz_obj, ticker, 
+  #                         lower=c(max(ticker$t)-0.2*dt, 0.01, 1), upper=c(max(ticker$t)+0.2*dt, 1, 50), control=vec_control)
+  #   
+  # }
+  # 
+  # 
+  # if(type=="contr"){
+  #   
+  #   test <- crs2lm(start_search, funz_obj, lower=lower, upper=upper, data=ticker)
+  #   
+  #   
+  # }
+  # 
+  # if(type=="isres"){#MIGLIORE secondo
+  #   
+  #   test <- isres(start_search,funz_obj,lower=lower,upper=upper,data=ticker)
+  #   
+  # }
+  # 
+  #if(type=="mlsl"){#MIGLIORE IN ASSOLUTO
     
     test <- mlsl(start_search,funz_obj,lower=lower,upper=upper,local.method = "LBFGS",data=ticker)
     
-  }
-  
-  if(type=="nelder"){
-    
-    test <- neldermead(start_search,funz_obj,lower=lower,upper=upper, data=ticker)
-    
-  }
-  
+  #}
+  # 
+  # if(type=="nelder"){
+  #   
+  #   test <- neldermead(start_search,funz_obj,lower=lower,upper=upper, data=ticker)
+  #   
+  # }
+  # 
   
   linear_param <- matrix_eq(ticker,test$par[1], test$par[2], test$par[3])
   
@@ -241,13 +241,15 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
   
   ticker <- cbind(ticker,conf_ind)
   
+  cl <- parallel::makeForkCluster(clusters)
+  doParallel::registerDoParallel(cl)
+  
   
   for(j in diff:(size+diff)){
     
     sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker)-j),1:3]
     
-    cl <- parallel::makeForkCluster(clusters)
-    doParallel::registerDoParallel(cl)
+
     
     
     df_result <- foreach (i = seq(1,1437,1), .combine = rbind) %dopar% {
@@ -280,7 +282,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
       
     }
     
-    parallel::stopCluster(cl)
+    
     
     
     #Prendo solo lunghezza intervallo che mi interessa dt tra 1460 e 40
@@ -313,7 +315,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                     filter(dt >= 40 & dt<=183 
                                                                                            & B<0 
                                                                                            #& hazard>0
-                                                                                           )),digits=5)
+                                                                                    )),digits=5)
     
     
     N.SS_EW <- nrow(as_tibble(df_result) %>%
@@ -332,9 +334,9 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 40 & dt<=183 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
- 
+    
     # ( SS_EF )  SUPER SHORT SCALE (SS) _ END FLAG ___ 183 A 40
     P.SS_EF <- nrow(as_tibble(df_result) %>%
                       
@@ -350,20 +352,20 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 40 & dt<=183 
                                                                                             & B<0 
                                                                                             #& hazard>0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     
     #critical time mediana
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],20] <- median(unlist((as_tibble(df_result) %>%
-      
-      filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-             #& tc <= dt_filter_high & tc >= dt_filter_low
-             #& oscill >= 2.5 & damp >=1
-             #& rel_err >=0 & rel_err <=0.2
-             #&
-               dt >= 40 & dt<=183 & B<0
-             #& test.resid<0.463 & hazard>0
-             ))[,10]))
+                                                                                  
+                                                                                  filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
+                                                                                    #& tc <= dt_filter_high & tc >= dt_filter_low
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 40 & dt<=183 & B<0
+                                                                                    #& test.resid<0.463 & hazard>0
+                                                                                  ))[,10]))
     
     
     
@@ -383,17 +385,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                       filter(dt >= 40 & dt<=183 
                                                                                              & B>0 
                                                                                              #& hazard<0
-                                                                                             )),digits=5)
+                                                                                      )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],24] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 40 & dt<=183 & B>0 & hazard<0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 40 & dt<=183 & B>0 & hazard<0))[,10]))
     
     
     
@@ -415,7 +417,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                     filter(dt >= 40 & dt<=360 
                                                                                            & B<0 
                                                                                            #& hazard>0
-                                                                                           )),digits=5)
+                                                                                    )),digits=5)
     
     N.S_EW <- nrow(as_tibble(df_result) %>%
                      
@@ -431,7 +433,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 40 & dt<=360 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     # ( S_EF ) SHORT SCALE (S) _ END FLAG ___ 360 A 40
     P.S_EF <- nrow(as_tibble(df_result) %>%
@@ -448,17 +450,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                     filter(dt >= 40 & dt<=360 
                                                                                            & B<0 
                                                                                            #& hazard>0
-                                                                                           )),digits=5)
+                                                                                    )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],21] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 40 & dt<=360 & B<0 & hazard>0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 40 & dt<=360 & B<0 & hazard>0))[,10]))
     
     
     
@@ -476,17 +478,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 40 & dt<=360 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],25] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 40 & dt<=360 & B>0 & hazard <0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 40 & dt<=360 & B>0 & hazard <0))[,10]))
     
     
     
@@ -507,7 +509,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                     filter(dt >= 365 & dt<=730 
                                                                                            & B<0 
                                                                                            #& hazard>0
-                                                                                           )),digits=5)
+                                                                                    )),digits=5)
     
     
     N.M_EW <- nrow(as_tibble(df_result) %>%
@@ -524,7 +526,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 365 & dt<=730 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     
     # ( M_EF ) MEDIUM SCALE  _ END FLAG ___ 365 A 730
@@ -542,17 +544,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                     filter(dt >= 365 & dt<=730 
                                                                                            & B<0 
                                                                                            #& hazard>0
-                                                                                           )),digits = 5)
+                                                                                    )),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],22] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 365 & dt<=730 & B<0 &  hazard>0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 365 & dt<=730 & B<0 &  hazard>0))[,10]))
     
     
     
@@ -570,17 +572,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 365 & dt<=730 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits = 5)
+                                                                                     )),digits = 5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],26] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 365 & dt<=730 & B>0 & hazard<0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 365 & dt<=730 & B>0 & hazard<0))[,10]))
     
     
     
@@ -601,7 +603,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 730 & dt<=1460 
                                                                                             & B<0 
                                                                                             #& hazard>0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     N.L_EW <- nrow(as_tibble(df_result) %>%
                      
@@ -617,7 +619,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 730 & dt<=1460 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     # ( L_EF ) LONG SCALE  _ END FLAG ___ 1460 730
     P.L_EF <- nrow(as_tibble(df_result) %>%
@@ -634,17 +636,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 730 & dt<=1460 
                                                                                             & B<0 
                                                                                             #& hazard>0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],23] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 730 & dt<=1460 & B<0 & hazard>0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 730 & dt<=1460 & B<0 & hazard>0))[,10]))
     
     
     
@@ -662,17 +664,17 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
                                                                                      filter(dt >= 730 & dt<=1460 
                                                                                             & B>0 
                                                                                             #& hazard<0
-                                                                                            )),digits=5)
+                                                                                     )),digits=5)
     
     
     ticker[ticker$Date==sub_ticker$Date[nrow(sub_ticker)],27] <- median(unlist((as_tibble(df_result) %>%
                                                                                   
                                                                                   filter(#m >= 0.01 & m <= 0.99 & w >=2 & w <= 25
-                                                                                         #& tc <= t2+0.1*(t2-t1) 
-                                                                                         #& oscill >= 2.5 & damp >=1
-                                                                                         #& rel_err >=0 & rel_err <=0.2
-                                                                                         #&
-                                                                                           dt >= 730 & dt<=1460 & B>0 & hazard<0))[,10]))
+                                                                                    #& tc <= t2+0.1*(t2-t1) 
+                                                                                    #& oscill >= 2.5 & damp >=1
+                                                                                    #& rel_err >=0 & rel_err <=0.2
+                                                                                    #&
+                                                                                    dt >= 730 & dt<=1460 & B>0 & hazard<0))[,10]))
     
     
     
@@ -680,6 +682,9 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
     
     
   }
+  
+  parallel::stopCluster(cl)
+  
   
   if(save==TRUE){
     
@@ -691,7 +696,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=3000,diff=0,save=TRUE)
+compute_conf(ticker,size=0,diff=0,save=TRUE)
 
 
 
@@ -765,6 +770,4 @@ cc <- density(b)
 output <- data.frame(tempo=cc[["x"]],dens=cc[["y"]])
 
 finale <- merge(a,output,by.x="t",by.y="tempo")
-
-
 
