@@ -1,0 +1,13 @@
+AGGIORNARE CONTENUTO CARTELLA DA MIO PC A CINECA
+rsync -PravzHS /home/sabato/Desktop/progettoR sgargiul@login.galileo.cineca.it:/gpfs/work1/try21_gargiulo
+
+DOWNLOAD DA CINECA A MIO PC 
+rsync -PravzHS sgargiul@login.galileo.cineca.it:/gpfs/work1/try21_gargiulo/progettoR/data  /home/sabato/Desktop/ris_cineca
+
+
+
+CONTROLLO JOB
+scontrol show job <job_id>
+
+SUBMIT JOB
+sbatch job_cin_1.sh (da usare dopo essere andati nella cartella progettoR)
