@@ -696,7 +696,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1,save=FALSE){
   return(ticker)
 }
 
-compute_conf(ticker,size=0,diff=0,save=TRUE)
+compute_conf(ticker,size=100,diff=101,save=TRUE)
 
 
 
@@ -721,7 +721,7 @@ a[c(k:nrow(a)),4:19] <- b[k:nrow(a),1:16]
 
 
 
-plotdat <- a[5000:9396,]
+plotdat <- a[5000:8396,]
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
