@@ -14,7 +14,7 @@ library(latticeExtra)
 
 
 
-list_of_files <- list.files(path = "data/SP500_WINDOWS_0.683/",
+list_of_files <- list.files(path = "data/backup_sp500_windows/",
                             pattern = glob2rx("df*.csv"),
                             full.names = TRUE)
 
@@ -22,7 +22,7 @@ df <- lapply(list_of_files,read.csv)
 
 #get data
 filename <- "SP500.csv"
-folder <- "data/SP500_WINDOWS/"
+folder <- "data/backup_sp500_windows/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
@@ -78,6 +78,16 @@ for(j in 1:length(df)){
   df_result <- df[[j]][,-1]
 
   data <- df_result[1,2]
+  
+  
+  # AGGIUSTA OSCILLAZIONI
+  
+  
+  x <- df_result$tc- decimal_date(as.Date.character(df_result$start_date)) #tc - t1
+  y <- df_result$tc- decimal_date(as.Date.character(df_result$end_date))
+  
+  df_result[,15] <- (df_result$w/2*pi)*log(abs(x/y))
+
 #####
 # ( SS_EW ) SUPER SHORT SCALE (SS) _ EARLY WARNING __ 183 a 40
 P.SS_EW <- nrow(as_tibble(df_result) %>%
@@ -457,7 +467,6 @@ ticker[ticker$Date==data,27] <- median(unlist((as_tibble(df_result) %>%
                                                                                 #&
                                                                                 dt >= 730 & dt<=1460 & B>0 & hazard<0))[,10]))
 
-
 }
 
 
@@ -488,7 +497,7 @@ a[c(7:nrow(a)-7),4:19] <- b[c(7:nrow(a)-7),1:16]
 
 
 
-plotdat <- a[7200:8396,]
+plotdat <- a[8000:8396,]
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
