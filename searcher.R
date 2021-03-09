@@ -83,10 +83,21 @@ for(j in 1:length(df)){
   # AGGIUSTA OSCILLAZIONI
   
   
-  x <- df_result$tc- decimal_date(as.Date.character(df_result$start_date)) #tc - t1
-  y <- df_result$tc- decimal_date(as.Date.character(df_result$end_date))
+  x <- df_result$tc#- decimal_date(as.Date.character(df_result$start_date)) #tc - t1
+  y <- df_result$tc - (decimal_date(as.Date.character(df_result$end_date)))#)-decimal_date(as.Date.character(df_result$start_date))) #tc - (t2-t1)
   
   df_result[,15] <- (df_result$w/2*pi)*log(abs(x/y))
+  
+  #aggiusta damping
+  
+   C <- df_result$C1/cos(atan(df_result$C2/df_result$C1))
+   df_result[,16] <- ( df_result$m*abs(df_result$B) )/ ( df_result$w*abs(C) )
+  
+  #aggiusta hazard
+  
+  
+  # df_result[,20] <- - df_result$B*df_result$m - ( abs(df_result[,16])*sqrt(df_result$m^2*df_result$w^2) )
+  
 
 #####
 # ( SS_EW ) SUPER SHORT SCALE (SS) _ EARLY WARNING __ 183 a 40
@@ -97,7 +108,7 @@ P.SS_EW <- nrow(as_tibble(df_result) %>%
                          & oscill >= 2.5 & damp >=0
                          & rel_err >=0 & rel_err <=0.05
                          & dt >= 40 & dt<=183
-                         & B<0 & test.resid<0.463 & hazard>0))
+                         & B<0 & test.resid<0.463))# & hazard>0))
 
 
 
@@ -116,7 +127,7 @@ N.SS_EW <- nrow(as_tibble(df_result) %>%
                          & oscill >= 2.5 & damp >=0
                          & rel_err >=0 & rel_err <=0.05
                          & dt >= 40 & dt<=183
-                         & B>0 & test.resid<0.463 & hazard<0))
+                         & B>0 & test.resid<0.463))# & hazard<0))
 
 
 
@@ -136,7 +147,7 @@ P.SS_EF <- nrow(as_tibble(df_result) %>%
                          & oscill >= 2.5 & damp >=0.8
                          & rel_err >=0 & rel_err <=0.2
                          & dt >= 40 & dt<=183 
-                         & B<0 & test.resid<0.463 & hazard>0))
+                         & B<0 & test.resid<0.463))# & hazard>0))
 
 ticker[ticker$Date==data,5] <- round(P.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -169,7 +180,7 @@ N.SS_EF <- nrow(as_tibble(df_result) %>%
                          & oscill >= 2.5 & damp >=0.8
                          & rel_err >=0 & rel_err <=0.2
                          & dt >= 40 & dt<=183 & B>0
-                         &  test.resid<0.463 & hazard<0))
+                         &  test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,13] <- round(N.SS_EF/nrow(as_tibble(df_result) %>%
                                                                                   
@@ -201,7 +212,7 @@ P.S_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 40 & dt<=360 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,6] <- round(P.S_EW/nrow(as_tibble(df_result) %>%
                                                                                 
@@ -217,7 +228,7 @@ N.S_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 40 & dt<=360 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,14] <- round(N.S_EW/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -234,7 +245,7 @@ P.S_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 40 & dt<=360 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,7] <- round(P.S_EF/nrow(as_tibble(df_result) %>%
                                                                                 
@@ -262,7 +273,7 @@ N.S_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 40 & dt<=360 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,15] <- round(N.S_EF/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -293,7 +304,7 @@ P.M_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 365 & dt<=730 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,8] <- round(P.M_EW/nrow(as_tibble(df_result) %>%
                                                                                 
@@ -310,7 +321,7 @@ N.M_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 365 & dt<=730 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,16] <- round(N.M_EW/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -328,7 +339,7 @@ P.M_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 365 & dt<=730 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,9] <- round(P.M_EF/nrow(as_tibble(df_result) %>%
                                                                                 
@@ -356,7 +367,7 @@ N.M_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 365 & dt<=730 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,17] <- round(N.M_EF/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -387,7 +398,7 @@ P.L_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 730 & dt<=1460 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,10] <- round(P.L_EW/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -403,7 +414,7 @@ N.L_EW <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0
                         & rel_err >=0 & rel_err <=0.05
                         & dt >= 730 & dt<=1460 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,18] <- round(N.L_EW/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -420,7 +431,7 @@ P.L_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 730 & dt<=1460 & B<0
-                        & test.resid<0.463 & hazard>0))
+                        & test.resid<0.463))#  & hazard>0))
 
 ticker[ticker$Date==data,11] <- round(P.L_EF/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -448,7 +459,7 @@ N.L_EF <- nrow(as_tibble(df_result) %>%
                         & oscill >= 2.5 & damp >=0.8
                         & rel_err >=0 & rel_err <=0.2
                         & dt >= 730 & dt<=1460 & B>0
-                        & test.resid<0.463 & hazard<0))
+                        & test.resid<0.463))#  & hazard<0))
 
 ticker[ticker$Date==data,19] <- round(N.L_EF/nrow(as_tibble(df_result) %>%
                                                                                  
@@ -497,7 +508,7 @@ a[c(7:nrow(a)-7),4:19] <- b[c(7:nrow(a)-7),1:16]
 
 
 
-plotdat <- a[8000:8396,]
+plotdat <- a[5000:8396,]
 
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
@@ -510,7 +521,7 @@ for (i in 4:19){
   
   
   
-  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","SP500",".jpeg",sep=""),height = 1080,width=1920) 
+  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","SP500",".jpeg",sep=""),height = 3000,width=4300) 
   
   plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[i])),add.ylab2 = TRUE, use.style=TRUE),
                   par.settings = simpleTheme(col = c('black','red')))

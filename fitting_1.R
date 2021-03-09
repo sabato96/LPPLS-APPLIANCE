@@ -27,7 +27,7 @@ ticker$Close <- as.numeric(ticker$Close)
 
 
 
-ticker <- ticker[15000:23395,]
+ticker <- ticker[13000:23395,]
 
 
 
@@ -35,6 +35,7 @@ ticker <- ticker[15000:23395,]
 lppl_est <- function(data, tc, m, w, a, b, c1, c2){
   
   dif_time = abs(tc-data$t)
+  #dif_time = tc-data$t
   est = a + dif_time^m*(b + ((c1 * cos(w * log(dif_time))) 
                              + (c2 * sin(w * log(dif_time)))))
   
@@ -43,6 +44,7 @@ lppl_est <- function(data, tc, m, w, a, b, c1, c2){
 matrix_eq <- function(data, tc, m, w){
   
   ti <- abs(tc - data$t)
+  #ti <- tc - data$t
   fi <- ti ** m #B
   gi <- ti ** m * cos(w * log(ti)) #C1
   hi <- ti ** m * sin(w * log(ti)) #C2
@@ -93,12 +95,14 @@ fitter <- function(data,plot=FALSE){
   first_row <- head(ticker, 1)
   dt <- last_row$t -first_row$t
   
-  start_search <- c(runif(1,max(ticker$t)-0.2*dt,max(ticker$t)+0.2*dt),
+  start_search <- c(runif(1,max(ticker$t)-0.2*dt,
+                          max(ticker$t)+0.2*dt),
                     runif(1,0.01,1.99),
                     runif(1,1,50))
   
   upper <- c(max(ticker$t)+0.2*dt,2,50)
   lower <- c(max(ticker$t)-0.2*dt,0.01,1)
+  #lower <- c(max(ticker$t)+0.001*dt,0.01,1)
   # 
   # if(type=="L-BFGS-B"){
   #   
@@ -302,6 +306,6 @@ compute_conf <- function(data,clusters=9,size=10,diff=1){
   #return(ticker)
 }
 
-compute_conf(ticker,size=80,diff=1863,clusters = 18)
+compute_conf(ticker,size=140,diff=3030,clusters = 16)
 
 
