@@ -11,24 +11,36 @@ library(optimx)
 library(latticeExtra)
 
 #get data
-filename <- "SP500.csv"
-folder <- "data/SP500_WINDOWS/"
+filename <- "OIL.csv"
+folder <- "data/OIL_WINDOWS/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
+
+
+# #Generico yahoo finance
+# ticker <- ticker[,c(1,6)]
+# ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
+
+#Correzione_oil
+names(ticker) <- c("Date","Close")
 ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
-#plot(ticker$Date,ticker$Adj.Close ,type="l")
-ticker <- ticker[,c(1,6)]
+
+
+
 ticker$t <- decimal_date(ticker$Date)
 names(ticker) <- c("Date", "Close", "t")
 ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
+ticker <- na.omit(ticker)
 
 
+#ticker <- ticker[16000:23395,]
 
-ticker <- ticker[13000:23395,]
-
+#Corr oil
+ticker <- ticker[c(-8644),]
+ticker <- ticker[3500:8869,]# OIL
 
 
 
@@ -99,10 +111,18 @@ fitter <- function(data,plot=FALSE){
                           max(ticker$t)+0.2*dt),
                     runif(1,0.01,1.99),
                     runif(1,1,50))
-  
+
+# 
+#   start_search <- c(runif(1,max(ticker$t)+0.001*dt,
+#                           max(ticker$t)+0.2*dt),
+#                     runif(1,0.01,1.99),
+#                     runif(1,1,50))
+#   
   upper <- c(max(ticker$t)+0.2*dt,2,50)
   lower <- c(max(ticker$t)-0.2*dt,0.01,1)
   #lower <- c(max(ticker$t)+0.001*dt,0.01,1)
+  
+  
   # 
   # if(type=="L-BFGS-B"){
   #   
@@ -187,7 +207,8 @@ fitter <- function(data,plot=FALSE){
                                                             *abs((linear_param[3]^2+linear_param[4]^2)^0.5)),
                         #*abs(linear_param[3]/(cos(atan(linear_param[4]/linear_param[3]))))
                         
-                        abs((log(last_row$Close)-fitted[length(fitted)])/fitted[length(fitted)]),
+                        #abs((log(last_row$Close)-fitted[length(fitted)])/fitted[length(fitted)]),#relative error sbagliato
+                        mean(abs(residual)/fitted, na.rm =TRUE), #relative error corretto
                         last_row$t-0.05*dt,
                         last_row$t+0.1*dt,
                         - linear_param[2] * test$par[2] - abs((linear_param[3]^2+linear_param[4]^2)^0.5)* sqrt(test$par[2]^2+test$par[3]^2),#fantazzini
@@ -207,7 +228,6 @@ fitter <- function(data,plot=FALSE){
 }
 
 # Script che lo lancia tu tutte le finestre temporali
-
 compute_conf <- function(data,clusters=9,size=10,diff=1){
   
   ticker <- data
@@ -250,12 +270,12 @@ compute_conf <- function(data,clusters=9,size=10,diff=1){
   
   for(j in diff:(size+diff)){
     
-    sub_ticker <- ticker[seq(nrow(ticker)-1350-j,nrow(ticker)-j),1:3]
-    
-
+    sub_ticker <- ticker[seq(nrow(ticker)-1463-j,nrow(ticker)-j),1:3]
     
     
-    df_result <- foreach (i = seq(1,1437,1), .combine = rbind) %dopar% {
+    
+    
+    df_result <- foreach (i = seq(1,1438,1), .combine = rbind) %dopar% {
       
       
       r.ticker <- sub_ticker[i:nrow(sub_ticker),]
@@ -267,8 +287,8 @@ compute_conf <- function(data,clusters=9,size=10,diff=1){
         
         attempt <- attempt +1
         try(
-          result <- fitter(r.ticker),
-          silent=TRUE
+          result <- fitter(r.ticker)#,
+          #silent=TRUE
         )
         
       }  
@@ -290,7 +310,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1){
     nome <- paste("df_result","_",j,".csv",sep="")
     
     write.csv(df_result,paste(folder,nome,sep=""))
-
+    
   }
   
   parallel::stopCluster(cl)
@@ -306,6 +326,7 @@ compute_conf <- function(data,clusters=9,size=10,diff=1){
   #return(ticker)
 }
 
-compute_conf(ticker,size=140,diff=3030,clusters = 16)
+
+compute_conf(ticker,size=350,diff=1386,clusters = 18)
 
 
