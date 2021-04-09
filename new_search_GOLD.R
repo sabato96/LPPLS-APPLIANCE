@@ -1,3 +1,5 @@
+# Calculates GOLD confidence indicator
+
 library(tidyverse)
 library(cmaes)
 library(quantmod)
