@@ -12,10 +12,10 @@ The repository contains the script (fitter.R) to fit the model on multiple time 
 
 The confidence indicators are divided according to different time windows size.
 
-SS -> Super-Short time scale: (40,183) days
-S -> Short time scale: (40,365) days
-M -> Medium time scale: (365,730) days
-L -> Long time scale: (730,1460) days
+1) SS -> Super-Short time scale: (40,183) days
+2) S -> Short time scale: (40,365) days
+3) M -> Medium time scale: (365,730) days
+4) L -> Long time scale: (730,1460) days
 
 They are also divided in Early Warning (EW) and End Flag (EF) based on filtering condition.
 So for example, the Super-Short Early Warning indicator is SS_EW and the End Flag is SS_EF and so on.
