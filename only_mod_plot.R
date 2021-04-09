@@ -1,3 +1,6 @@
+# Script to generate deterministic LPPLS model. 
+# You can also add by yourself some kind of noise in the time series to simulate syntetic random LPPLS price paths
+
 library(cmaes)
 library(quantmod)
 library(zoo)
