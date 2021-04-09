@@ -1,3 +1,4 @@
+# Try to backtest trading strategy based on confidence indicator derived previously
 
 library(quantmod)
 library(TTR)
