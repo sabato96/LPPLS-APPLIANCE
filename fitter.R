@@ -1,3 +1,5 @@
+# Generic fitter 
+
 library(cmaes)
 library(zoo)
 library(lubridate)
