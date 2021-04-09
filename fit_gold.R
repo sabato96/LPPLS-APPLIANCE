@@ -1,3 +1,5 @@
+#Fitter for gold prices
+
 library(cmaes)
 library(zoo)
 library(lubridate)
