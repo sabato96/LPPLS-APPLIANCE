@@ -5,3 +5,5 @@ The LPPLS model provides a flexible framework to detect bubbles and predict regi
 Here is the model:
 
 ![LPPLS Model](https://github.com/Boulder-Investment-Technologies/lppls/raw/master/img/latex/LPPLS_Model.svg)
+
+The repository contains the script (fitter.R) to fit the model on multiple time windows (shrinking) and the script (new_search_xxx.R) to derive the confidence indicator based on the output of fitter.R
