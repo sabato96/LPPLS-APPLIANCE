@@ -1,5 +1,3 @@
-# Calculates SP500 confidence indicator
-
 library(tidyverse)
 library(cmaes)
 library(quantmod)

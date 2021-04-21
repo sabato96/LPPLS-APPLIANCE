@@ -14,15 +14,16 @@ library(latticeExtra)
 
 
 
-list_of_files <- list.files(path = "data/GOLD_WINDOWS/",
+list_of_files <- list.files(path = "data/TSLA_WINDOWS/",
                             pattern = glob2rx("df*.csv"),
                             full.names = TRUE)
 
 df <- lapply(list_of_files,read.csv)
 
+
 #get data
-filename <- "GOLD.csv"
-folder <- "data/GOLD_WINDOWS/"
+filename <- "TSLA.csv"
+folder <- "data/TSLA_WINDOWS/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
@@ -31,10 +32,9 @@ ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
 ticker <- ticker[,c(1,6)]
 ticker$t <- decimal_date(ticker$Date)
 names(ticker) <- c("Date", "Close", "t")
-ticker$Close <- na_if(ticker$Close,".")
-
-ticker$Close <- as.numeric(ticker$Close)
+ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
+ticker$Close <- as.numeric(ticker$Close)
 
 
 
@@ -50,7 +50,6 @@ conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),#4
 )
 
 ticker <- cbind(ticker,conf_ind)
-
 
 
 for(j in 1:length(df)){
@@ -407,6 +406,8 @@ for(j in 1:length(df)){
 a <- ticker
 
 
+
+
 #Align RIGHT
 k=50
 
@@ -494,7 +495,13 @@ for (i in 4:11){
 
 ## SALVA CSV CON RISULTATI
 
-write.csv(a,paste(folder,"GOLD_ANALYSIS.csv",sep=""))
+write.csv(a,paste(folder,"TSLA_ANALYSIS.csv",sep=""))
+
+
+
+
+
+
 
 
 
