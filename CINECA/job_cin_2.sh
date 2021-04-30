@@ -5,7 +5,7 @@
 #SBATCH --time=0:20:00               # time limits: 1 hour
 #SBATCH --error=myJob2.err            # standard error file
 #SBATCH --output=myJob2.out           # standard output file
-#SBATCH --account=try21_gargiulo           # account name
+#SBATCH --account=#########           # account name
 #SBATCH --partition=gll_usr_prod     # partition name
 
 cd $WORK
