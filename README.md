@@ -19,3 +19,5 @@ The confidence indicators are divided according to different time windows size.
 
 They are also divided in Early Warning (EW) and End Flag (EF) based on filtering condition.
 So for example, the Super-Short Early Warning indicator is SS_EW and the End Flag is SS_EF and so on.
+
+DOWNLOAD FULL POJECT AND RESULTS -> https://mega.nz/folder/Do9ESJaT#uoT8s09UZqGPYvrrHTgGmA
