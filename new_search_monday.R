@@ -11,18 +11,24 @@ library(ggplot2)
 library(nloptr)
 library(optimx)
 library(latticeExtra)
+library(RColorBrewer)
+library(stringi)
 
 
+#### SP500 PLOTTER
 
-list_of_files <- list.files(path = "data/MSFT_WINDOWS/",
+
+list_of_files <- list.files(path = "data/B.MONDAY_WINDOWS/",
                             pattern = glob2rx("df*.csv"),
                             full.names = TRUE)
 
 df <- lapply(list_of_files,read.csv)
 
+
+
 #get data
-filename <- "MSFT.csv"
-folder <- "data/MSFT_WINDOWS/"
+filename <- "SP500.csv"
+folder <- "data/SP500_WINDOWS/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
@@ -35,7 +41,7 @@ ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
 
-
+ticker <- ticker[13000:15100,]
 
 
 conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),#4
@@ -50,8 +56,6 @@ conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),#4
 
 ticker <- cbind(ticker,conf_ind)
 
-
-####
 
 for(j in 1:length(df)){
   
@@ -404,76 +408,20 @@ for(j in 1:length(df)){
 }
 
 
-a <- ticker[7500:8846,]
+a <- ticker
 
 
-
-#Align RIGHT
-k=50
-
-b <- rollmean(a[,4:19], k=k,fill=NA,align = "right")
-
-a[c(k:nrow(a)),4:19] <- b[k:nrow(a),1:16]
-
-
-#ALIGN CENTER
-
-k=10
-
-b <- rollmean(a[,4:19], k=k,fill=NA)
-
-a[c(4:nrow(a)-4),4:19] <- b[c(4:nrow(a)-4),1:16]
-
-#SMOOTHING
-
-
-
-
-sm <- matrix(data=NA, ncol = 8, nrow = nrow(ticker))
-
-sm[1,1] <- ticker[1,4]
-sm[1,2] <- ticker[1,5]
-sm[1,3] <- ticker[1,6]
-sm[1,4] <- ticker[1,7]
-sm[1,5] <- ticker[1,8]
-sm[1,6] <- ticker[1,9]
-sm[1,7] <- ticker[1,10]
-sm[1,8] <- ticker[1,11]
-
-
-for(i in 2:nrow(ticker)){
-  
-  sm[i,1] <- 0.965*sm[i-1,1]+0.035*ticker[i,4]
-  sm[i,2] <- 0.965*sm[i-1,2]+0.035*ticker[i,5]
-  
-  sm[i,3] <- 0.98*sm[i-1,3]+0.02*ticker[i,6]
-  sm[i,4] <- 0.98*sm[i-1,4]+0.02*ticker[i,7]
-  
-  sm[i,5] <- 0.995*sm[i-1,5]+0.005*ticker[i,8]
-  sm[i,6] <- 0.995*sm[i-1,6]+0.005*ticker[i,9]
-  
-  sm[i,7] <- 0.998*sm[i-1,7]+0.002*ticker[i,10]
-  sm[i,8] <- 0.998*sm[i-1,8]+0.002*ticker[i,11]
-  
-}
-
-sm <- as.data.frame(sm)
-
-ticker[,4:11] <- sm
-
-
-
-#Se non uso smoothing
-plotdat <- a[400:1347,]
-
-#Se uso smoothing
-plotdat <- ticker
+plotdat <- a[1500:2101,]
 
 
 
 names(plotdat)[4:11] <- c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
+
+
+folder <- c("data/B.MONDAY_WINDOWS/")
+
 
 
 my.theme <- trellis.par.get()
@@ -492,7 +440,7 @@ for (i in c(4,6,8,10)){
                       par.settings = list(superpose.line = list(lwd=1.7)))
   
   
-  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","MSFT",".jpeg",sep=""),height = 1080,width=1920) 
+  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","MONDAY",".jpeg",sep=""),height = 1080,width=1920) 
   
   plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[i]),names(plotdat[i+1])),add.ylab2 = TRUE, use.style=TRUE),
                   par.settings = simpleTheme(col = c('black','red','darkgreen')))
@@ -501,21 +449,6 @@ for (i in c(4,6,8,10)){
   
   dev.off()
 }
-
-
-
-
-
-## SALVA CSV CON RISULTATI
-
-write.csv(a,paste(folder,"MSFT_ANALYSIS.csv",sep=""))
-
-
-
-
-
-
-
 
 
 

@@ -471,29 +471,40 @@ ticker[,4:11] <- sm
 
 plotdat <- a[4500:8396,]
 
-
 names(plotdat)[4:11] <- c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")
 
 #for (i in c("SS_EW","SS_EF","S_EW","S_EF","M_EW","M_EF","L_EW","L_EF")){
 
-for (i in 4:11){
+
+my.theme <- trellis.par.get()
+
+my.theme$fontsize$text <- 25
+my.theme$fontsize$points <- 12
+
+
+
+
+for (i in c(4,6,8,10)){
   
-  plot.close <- xyplot(Close ~ Date, plotdat, type = "l")
-  plot.conf <- xyplot(as.formula(paste(names(plotdat[i]),"~","Date",sep=""))
-                      , plotdat, type = "l")
+  trellis.par.set(my.theme)
+  plot.close <- xyplot(Close ~ Date, plotdat, type = "l", par.settings = list(superpose.line = list(lwd=1.7)), xlab = "Time", ylab="Price")
+  plot.conf <- xyplot(as.formula(paste(names(plotdat[i]),"+",names(plotdat[i+1]),"~","Date",sep=""))
+                      , plotdat, type = "l", col=c("red","darkgreen"), par.strip.text=list(cex=2), ylab = "Confidence indicators",
+                      par.settings = list(superpose.line = list(lwd=1.7)))
   
   
+  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","TSLA",".jpeg",sep=""),height = 1080,width=1920) 
   
-  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","SP500",".jpeg",sep=""),height = 1080,width=1920) 
-  
-  plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[i])),add.ylab2 = TRUE, use.style=TRUE),
-                  par.settings = simpleTheme(col = c('black','red')))
-  
+  plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[i]),names(plotdat[i+1])),add.ylab2 = TRUE, use.style=TRUE),
+                  par.settings = simpleTheme(col = c('black','red','darkgreen')))
+  trellis.par.set(my.theme)
   print(plot_)
   
   dev.off()
 }
-  
+
+
+
   
   
 ## SALVA CSV CON RISULTATI

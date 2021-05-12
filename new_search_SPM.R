@@ -14,28 +14,26 @@ library(latticeExtra)
 
 
 
-list_of_files <- list.files(path = "data/MSFT_WINDOWS/",
+list_of_files <- list.files(path = "data/SPM_WINDOWS/",
                             pattern = glob2rx("df*.csv"),
                             full.names = TRUE)
 
 df <- lapply(list_of_files,read.csv)
 
 #get data
-filename <- "MSFT.csv"
-folder <- "data/MSFT_WINDOWS/"
+filename <- "SPM.csv"
+folder <- "data/SPM_WINDOWS/"
 filepath <- paste("./data/", filename, sep="")
 filesname <- substr(filepath, nchar("./data/")+1, nchar(filepath)-4)
 ticker <- read.csv(filepath)
 ticker$Date <- as.Date(ticker$Date, format = "%Y-%m-%d")
 #plot(ticker$Date,ticker$Adj.Close ,type="l")
-ticker <- ticker[,c(1,6)]
+ticker <- ticker[,c(1,5)]
 ticker$t <- decimal_date(ticker$Date)
 names(ticker) <- c("Date", "Close", "t")
 ticker$Close <- na_if(ticker$Close,"null")
 ticker <- na.omit(ticker)
 ticker$Close <- as.numeric(ticker$Close)
-
-
 
 
 conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),#4
@@ -50,8 +48,6 @@ conf_ind <- data.frame(SS_EW=rep(0,nrow(ticker)),#4
 
 ticker <- cbind(ticker,conf_ind)
 
-
-####
 
 for(j in 1:length(df)){
   
@@ -404,7 +400,7 @@ for(j in 1:length(df)){
 }
 
 
-a <- ticker[7500:8846,]
+a <- ticker
 
 
 
@@ -464,10 +460,11 @@ ticker[,4:11] <- sm
 
 
 #Se non uso smoothing
-plotdat <- a[400:1347,]
+plotdat <- a[1300:4687,]
 
 #Se uso smoothing
 plotdat <- ticker
+
 
 
 
@@ -492,7 +489,7 @@ for (i in c(4,6,8,10)){
                       par.settings = list(superpose.line = list(lwd=1.7)))
   
   
-  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","MSFT",".jpeg",sep=""),height = 1080,width=1920) 
+  jpeg(paste(folder,"plots/",names(plotdat[i]),"_","SPM",".jpeg",sep=""),height = 1080,width=1920) 
   
   plot_ <- update(doubleYScale(plot.close,plot.conf,text=c("Price",names(plotdat[i]),names(plotdat[i+1])),add.ylab2 = TRUE, use.style=TRUE),
                   par.settings = simpleTheme(col = c('black','red','darkgreen')))
@@ -504,11 +501,18 @@ for (i in c(4,6,8,10)){
 
 
 
-
-
 ## SALVA CSV CON RISULTATI
 
-write.csv(a,paste(folder,"MSFT_ANALYSIS.csv",sep=""))
+write.csv(a,paste(folder,"SPM_ANALYSIS.csv",sep=""))
+
+
+
+
+
+
+
+
+
 
 
 
